@@ -16,7 +16,7 @@ on:
 
 jobs:
   native-image-compile:
-    runs-on: Rhc Builder on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
