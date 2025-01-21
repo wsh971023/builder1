@@ -35,6 +35,10 @@ jobs:
           native-image --version
       - name: Example step using Maven plugin  # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
         run: mvn -Pnative package -DskipTests
+      - name: Remove JAR files before uploading
+        run: |
+          find target/ -type f -name "*.jar" -exec rm {} \;  
+          find target/ -type f -name "*.original" -exec rm {} \;  
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
