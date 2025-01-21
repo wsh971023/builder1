@@ -22,3 +22,37 @@ logging:
     root: info
   charset:
     console: ${logEncoding}
+
+
+
+name: GraalVM Native Image builds
+on: [push, pull_request]
+jobs:
+  build:
+    name: Rhc Builder on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Build and run HelloWorld.java
+        run: |
+          echo 'public class HelloWorld { public static void main(String[] args) { System.out.println("Hello, World!"); } }' > HelloWorld.java
+          javac HelloWorld.java
+          native-image HelloWorld
+          ./helloworld
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: rhc-builder-${{ matrix.os }}
+          path: rhc-builder*
