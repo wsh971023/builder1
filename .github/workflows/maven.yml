@@ -34,7 +34,7 @@ jobs:
           java --version
           native-image --version
       - name: Example step using Maven plugin  # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
-        run: mvn -Pnative package -Dmaven.test.skip=true
+        run: mvn -Pnative package -DskipTests
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
