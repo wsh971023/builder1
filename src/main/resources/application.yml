@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: rhc-builder
+  freemarker:
+    # 模板后缀名
+    suffix: .ftl
+    # 页面编码
+    charset: UTF-8
+    # 页面缓存
+    cache: false
+    # 模板路径
+    template-loader-path: classpath:/templates/
+  datasource:
+    #url: jdbc:sqlite:db/identifier.sqlite
+    url: ${db.url}
+    driver-class-name: org.sqlite.JDBC
+
+logging:
+  pattern:
+    console: "%clr(%d{${LOG_DATEFORMAT_PATTERN:yyyy-MM-dd HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%logger{39} .%M){cyan} %clr([%L{5}]){green} %clr(:){faint} %m%n"
+  level:
+    root: info
+  charset:
+    console: ${logEncoding}
