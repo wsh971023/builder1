@@ -34,7 +34,7 @@ public class ConfigDao {
      */
     public String getValue(String key, String type) {
         String sql = "select value from config where type=:type and key=:key";
-        return jdbcTemplate.queryForObject(sql, new java.util.HashMap<String, Object>() {{
+        return jdbcTemplate.queryForObject(sql, new HashMap<String, Object>() {{
             put("type", type);
             put("key", key);
         }}, String.class);
