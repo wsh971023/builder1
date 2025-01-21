@@ -24,12 +24,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '21'
-          distribution: 'graalvm'
-          components: 'native-image'
-      - name: Compile Application to Native Image
+          java-version: '21'      # See 'Options' for more details
+          distribution: 'graalvm' # See 'Supported distributions' for available options
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Example step
         run: |
-          ./mvnw clean package -X -Dmaven.test.skip=true
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
+      - name: Example step using Maven plugin  # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
+        run: mvn -Pnative package
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
