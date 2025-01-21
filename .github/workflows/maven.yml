@@ -27,25 +27,26 @@ jobs:
           java-version: '21'      # See 'Options' for more details
           distribution: 'graalvm' # See 'Supported distributions' for available options
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Example step
+      - name: Env Check
         run: |
           echo "GRAALVM_HOME: $GRAALVM_HOME"
           echo "JAVA_HOME: $JAVA_HOME"
           java --version
           native-image --version
-      - name: Example step using Maven plugin  # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
+      - name: Maven plugin Build # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
         run: mvn -Pnative package -DskipTests
-      - name: Remove unwanted files
+        
+      - name: Remove unwanted files (Linux/macOS)
+        if: runner.os != 'Windows'
         run: |
-          if [ "$RUNNER_OS" == "Linux" ] || [ "$RUNNER_OS" == "macOS" ]; then
-            # Linux and macOS
-            find target/ -type f \( -name "*.jar" -or -name "*.original" \) -exec rm -f {} \;
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            # Windows PowerShell
-            Remove-Item -Path target\*.jar -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path target\*.original -Force -ErrorAction SilentlyContinue
-          fi
+          find target/ -type f \( -name "*.jar" -or -name "*.original" \) -exec rm -f {} \;
         shell: bash
+      - name: Remove unwanted files (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Remove-Item -Path target\*.jar -Force -ErrorAction SilentlyContinue
+          Remove-Item -Path target\*.original -Force -ErrorAction SilentlyContinue
+        shell: pwsh
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
