@@ -35,10 +35,16 @@ jobs:
           native-image --version
       - name: Example step using Maven plugin  # https://graalvm.github.io/native-build-tools/latest/maven-plugin.html
         run: mvn -Pnative package -DskipTests
-      - name: Remove JAR files before uploading
+      - name: Remove JAR and original files
         run: |
-          find target/ -type f -name "*.jar" -exec rm {} \;  
-          find target/ -type f -name "*.original" -exec rm {} \;  
+          if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]]; then
+            # Linux and macOS
+            find target/ -type f \( -name "*.jar" -or -name "*.original" \) -exec rm -f {} \;
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            # Windows PowerShell
+            Remove-Item -Path target\*.jar -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path target\*.original -Force -ErrorAction SilentlyContinue
+          fi
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
