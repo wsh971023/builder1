@@ -16,9 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
-import java.net.URL;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.LockSupport;
 
 @Slf4j
 @RestController
@@ -81,12 +80,16 @@ public class JenkinsController {
             Thread.ofVirtual().start(()->{
                 gitService.gitClone(info, gitService.getCloneDir(info));
             });
-            while (
-                    info.getStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD).getStatus().equals(Constants.JOB_STATUS_SUCCESS)
-                    && info.getStatus(Constants.JOB_PROGRESS_GIT_CLONE).getProcess().equals(Constants.JOB_STATUS_SUCCESS)
-            ){
-                gitService.copyFile(info);
-                gitService.gitCommitAndPush(info);
+            while (true){
+                LockSupport.parkNanos(1000 * 1_000_000); // 暂停一秒
+                log.debug("wait jenkins download or git clone...");
+                Info infoCache = cacheUtil.getInfoFromJobList(env,info.getJobName());
+                if (infoCache.getStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD).getStatus().equals(Constants.JOB_STATUS_SUCCESS)
+                        && infoCache.getStatus(Constants.JOB_PROGRESS_GIT_CLONE).getStatus().equals(Constants.JOB_STATUS_SUCCESS)){
+                    gitService.copyFile(info);
+                    gitService.gitCommitAndPush(info);
+                    break;
+                }
             }
         });
     }
