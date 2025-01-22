@@ -85,6 +85,7 @@ const GetJobStatus = (data) => {
                         status = false;
                         changeStatus(info.process, Status.FAIL);
                     }else if (info.status === Status.INIT){
+                        status = false;
                         changeStatus(info.process, Status.INIT);
                     }
                 }
