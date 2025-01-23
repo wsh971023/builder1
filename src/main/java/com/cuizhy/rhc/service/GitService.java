@@ -6,8 +6,11 @@ import com.cuizhy.rhc.model.Info;
 import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.util.FileUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.api.AddCommand;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.RmCommand;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.lib.TextProgressMonitor;
@@ -116,19 +119,52 @@ public class GitService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = now.format(formatter);
         String commitMessage = String.format("rhc-builder commit and push at %s", timestamp);
+        addOnlyModifiedFiles(git);
         git.commit().setMessage(commitMessage).call();
         log.info("提交成功...");
         return git;
     }
 
+    public void addOnlyModifiedFiles(Git git) throws GitAPIException {
+        Status status = git.status().call();
+
+        // 添加所有修改（Modified）和未跟踪（Untracked）的文件
+        // 2. 批量添加所有变更文件（兼容全版本）
+        if (!status.getModified().isEmpty() || !status.getUntracked().isEmpty()) {
+            AddCommand add = git.add();
+            status.getModified().forEach(add::addFilepattern);
+            status.getUntracked().forEach(add::addFilepattern);
+            add.call();
+        }
+        // 2. 删除文件（兼容写法）
+        if (!status.getRemoved().isEmpty()) {
+            RmCommand rm = git.rm();
+            status.getRemoved().forEach(rm::addFilepattern);
+            rm.call(); // 单次提交所有删除
+        }
+    }
+
     public void gitPush(Git git) throws GitAPIException {
         log.info("正在推送...");
-        git.push()
-                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
-                .setThin(true)
-                .setAtomic(true)
-                .call();
+        Status status = git.status().call();
+        // 3. 提交并推送（仅在存在变更时）
+        if (hasChanges(status)) {
+            git.push()
+                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
+                    .setThin(true)
+                    .setAtomic(true)
+                    .call();
+        } else {
+            log.info("无变更需要提交和推送");
+        }
+
         log.info("推送成功...");
+    }
+
+    private boolean hasChanges(Status status) {
+        return !status.getModified().isEmpty() ||
+                !status.getUntracked().isEmpty() ||
+                !status.getRemoved().isEmpty();
     }
 
     public void gitCommitAndPush(Info info){
