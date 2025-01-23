@@ -79,12 +79,13 @@ public class GitService {
             git = cloneCommand.call();
 
             StoredConfig config = git.getRepository().getConfig();
+            config.setInt("pack", null,"window", 250);
             // 配置 Delta 压缩深度（默认 50）
             config.setInt("pack", null, "depth", 100); // 增大深度以处理大文件
             // 配置压缩级别（0-9，9 为最高压缩）
-            config.setInt("core", null, "compression", 9);
-            // 启用 Delta 缓存（默认 256MB）
-            config.setLong("pack", null, "deltacachesize", 512 * 1024 * 1024); // 512MB
+            config.setString("core", null, "compression", "zstd");
+            config.setInt("core", null, "zstdCompressionLevel", 6);
+            config.setLong("http", null, "postBuffer", 1024 * 1024 * 1024);
             config.save();
 
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_SUCCESS);
@@ -125,6 +126,7 @@ public class GitService {
         git.push()
                 .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
                 .setThin(true)
+                .setAtomic(true)
                 .call();
         log.info("推送成功...");
     }
