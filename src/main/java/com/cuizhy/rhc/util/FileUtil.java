@@ -38,22 +38,30 @@ public class FileUtil {
      * @param dirPath 文件夹路径
      */
     public static void deleteDir(String dirPath) throws IOException {
-        if (dirPath == null){
+        if (dirPath == null || !Files.exists(Path.of(dirPath))) {
             return;
         }
-        if (!Files.exists(Path.of(dirPath))){
-            return;
-        }
-        //使用NIO 因为GraalVm反射问题，尽量不使用三方工具包
+
         Files.walkFileTree(Path.of(dirPath), new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                // 修复点1: 清除只读属性（Windows 必需）
+                if (file.toFile().exists()) {
+                    file.toFile().setWritable(true);
+                }
                 Files.delete(file);
                 return FileVisitResult.CONTINUE;
             }
 
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                if (exc != null) {
+                    throw exc; // 确保异常传播
+                }
+                // 修复点2: 清除目录只读属性
+                if (dir.toFile().exists()) {
+                    dir.toFile().setWritable(true);
+                }
                 Files.delete(dir);
                 return FileVisitResult.CONTINUE;
             }
