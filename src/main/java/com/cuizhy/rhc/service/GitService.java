@@ -85,7 +85,7 @@ public class GitService {
             throw new RuntimeException("git clone 失败",e);
         }finally {
             if (result != null) {
-                result.close(); // 确保关闭Git对象
+                result.getRepository().close(); // 确保关闭Git对象
             }
         }
     }
@@ -117,10 +117,11 @@ public class GitService {
     }
 
     public void gitCommitAndPush(Info info){
+        Git git = null;
         try{
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
-            Git git = this.gitCommit(this.getCloneDir(info));
+            git = this.gitCommit(this.getCloneDir(info));
             this.gitPush(git);
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
@@ -128,6 +129,10 @@ public class GitService {
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_FAIL);
             cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("git commit and push 失败",e);
+        }finally {
+            if (git != null) {
+                git.getRepository().close();
+            }
         }
     }
 
