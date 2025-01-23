@@ -86,7 +86,7 @@ public class GitService {
             // 配置 Delta 压缩深度（默认 50）
             config.setInt("pack", null, "depth", 100); // 增大深度以处理大文件
             // 配置压缩级别（0-9，9 为最高压缩）
-            config.setString("core", null, "compression", "zstd");
+            config.setInt("core", null, "compression", 9);
             config.setInt("core", null, "zstdCompressionLevel", 6);
             config.setLong("http", null, "postBuffer", 1024 * 1024 * 1024);
             config.save();
@@ -119,15 +119,18 @@ public class GitService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = now.format(formatter);
         String commitMessage = String.format("rhc-builder commit and push at %s", timestamp);
-        addOnlyModifiedFiles(git);
-        git.commit().setMessage(commitMessage).call();
-        log.info("提交成功...");
+        Status status = git.status().call();
+        addOnlyModifiedFiles(git,status);
+        if (hasChanges(status)){
+            git.commit().setMessage(commitMessage).call();
+            log.info("提交成功...");
+            return git;
+        }
+        log.info("无变更,无需提交");
         return git;
     }
 
-    public void addOnlyModifiedFiles(Git git) throws GitAPIException {
-        Status status = git.status().call();
-
+    public void addOnlyModifiedFiles(Git git,Status status) throws GitAPIException {
         // 添加所有修改（Modified）和未跟踪（Untracked）的文件
         // 2. 批量添加所有变更文件（兼容全版本）
         if (!status.getModified().isEmpty() || !status.getUntracked().isEmpty()) {
@@ -144,21 +147,26 @@ public class GitService {
         }
     }
 
+    public Git gitGc(Git git) throws GitAPIException {
+        git.gc()
+                .setAggressive(true)
+                .call();
+        return git;
+    }
+
     public void gitPush(Git git) throws GitAPIException {
         log.info("正在推送...");
         Status status = git.status().call();
-        // 3. 提交并推送（仅在存在变更时）
-        if (hasChanges(status)) {
+        if (hasChanges(status)){
             git.push()
                     .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
                     .setThin(true)
                     .setAtomic(true)
                     .call();
-        } else {
-            log.info("无变更需要提交和推送");
+            log.info("推送成功...");
+            return;
         }
-
-        log.info("推送成功...");
+        log.info("无变更,无需推送");
     }
 
     private boolean hasChanges(Status status) {
@@ -173,6 +181,7 @@ public class GitService {
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
             git = this.gitCommit(this.getCloneDir(info));
+            this.gitGc(git);
             this.gitPush(git);
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
