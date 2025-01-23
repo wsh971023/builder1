@@ -56,6 +56,7 @@ public class GitService {
 
 
     public void gitClone(Info info,String cloneDir){
+        Git result = null;
         try{
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
@@ -74,7 +75,7 @@ public class GitService {
                     .setCloneAllBranches(false)
                     .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
                     .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)));
-            Git result = cloneCommand.call();
+            result = cloneCommand.call();
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
             log.info("已克隆到 {}", result.getRepository().getDirectory().getParent());
@@ -82,6 +83,10 @@ public class GitService {
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_FAIL);
             cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("git clone 失败",e);
+        }finally {
+            if (result != null) {
+                result.close(); // 确保关闭Git对象
+            }
         }
     }
 
