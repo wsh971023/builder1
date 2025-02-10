@@ -14,7 +14,6 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.lib.TextProgressMonitor;
-import org.eclipse.jgit.storage.pack.PackConfig;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -148,20 +147,11 @@ public class GitService {
         }
     }
 
-    public Git gitGc(Git git) throws GitAPIException, IOException {
-        git.getRepository().close(); // 关闭现有实例
-        File gitDir = git.getRepository().getDirectory();
-
-        // 重新打开新的 Git 实例
-        Git freshGit = Git.open(gitDir);
-
-        // 执行 GC
-        freshGit.gc()
+    public Git gitGc(Git git) throws GitAPIException {
+        git.gc()
                 .setAggressive(true)
-                .setPreserveOldPacks(false)
                 .call();
-
-        return freshGit; // 返回新实例
+        return git;
     }
 
     public void gitPush(Git git) throws GitAPIException {
