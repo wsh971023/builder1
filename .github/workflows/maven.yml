@@ -10,9 +10,9 @@ name: GraalVM Native Image builds
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "develop"]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "develop"]
 
 jobs:
   native-image-compile:
