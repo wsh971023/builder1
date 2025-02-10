@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.lib.TextProgressMonitor;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +56,7 @@ public class GitService {
 
 
     public void gitClone(Info info,String cloneDir){
-        Git git = null;
+        Git result = null;
         try{
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
@@ -76,27 +75,17 @@ public class GitService {
                     .setCloneAllBranches(false)
                     .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
                     .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)));
-            git = cloneCommand.call();
-
-            StoredConfig config = git.getRepository().getConfig();
-            // 配置 Delta 压缩深度（默认 50）
-            config.setInt("pack", null, "depth", 100); // 增大深度以处理大文件
-            // 配置压缩级别（0-9，9 为最高压缩）
-            config.setInt("core", null, "compression", 9);
-            // 启用 Delta 缓存（默认 256MB）
-            config.setLong("pack", null, "deltacachesize", 512 * 1024 * 1024); // 512MB
-            config.save();
-
+            result = cloneCommand.call();
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
-            log.info("已克隆到 {}", git.getRepository().getDirectory().getParent());
+            log.info("已克隆到 {}", result.getRepository().getDirectory().getParent());
         }catch (Exception e){
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_FAIL);
             cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("git clone 失败",e);
         }finally {
-            if (git != null) {
-                git.getRepository().close(); // 确保关闭Git对象
+            if (result != null) {
+                result.getRepository().close(); // 确保关闭Git对象
             }
         }
     }
@@ -123,9 +112,7 @@ public class GitService {
     public void gitPush(Git git) throws GitAPIException {
         log.info("正在推送...");
         git.push()
-                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
-                .setThin(true)
-                .call();
+                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken())).call();
         log.info("推送成功...");
     }
 
