@@ -105,6 +105,9 @@
                     title: 'UAT环境',
                     id: 'uat'
                 },{
+                    title: 'sit环境',
+                    id: 'sit'
+                },{
                     title: '生产环境',
                     id: 'prod'
                 }],
