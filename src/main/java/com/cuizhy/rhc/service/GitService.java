@@ -174,6 +174,7 @@ public class GitService {
                 // 删除目标目录中的指定文件夹
                 FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_UAT).toString());
                 FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_PROD).toString());
+                FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_SIT).toString());
 
                 // 解压 dist.zip 文件
                 if (zipFilePath.endsWith(".zip")) {
