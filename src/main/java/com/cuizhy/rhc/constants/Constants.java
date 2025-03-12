@@ -14,6 +14,10 @@ public class Constants {
      * UAT 环境 前端项目文件夹名称
      */
     public static final String FRONT_DIR_UAT = "eps-rhc";
+    /**
+     * SIT 环境 前端项目文件夹名称
+     */
+    public static final String FRONT_DIR_SIT = "pre";
 
     /**
      * PROD 环境 前端项目文件夹名称

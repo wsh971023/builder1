@@ -189,6 +189,9 @@ public class GitService {
                         if (info.getEnv().equals("uat")){
                             dirName = Constants.FRONT_DIR_UAT;
                         }
+                        if (info.getEnv().equals("sit")){
+                            dirName = Constants.FRONT_DIR_SIT;
+                        }
                         Path extractedDir = Paths.get(cloneDir, "dist");
                         if (Files.exists(extractedDir)) {
                             Path newDirPath = Paths.get(cloneDir, dirName);
