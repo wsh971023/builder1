@@ -105,8 +105,8 @@
                     title: 'UAT环境',
                     id: 'uat'
                 },{
-                    title: '预生产环境',
-                    id: 'pre'
+                    title: 'sit环境',
+                    id: 'sit'
                 },{
                     title: '生产环境',
                     id: 'prod'
