@@ -17,7 +17,7 @@ public class Constants {
     /**
      * SIT 环境 前端项目文件夹名称
      */
-    public static final String FRONT_DIR_SIT = "pre";
+    public static final String FRONT_DIR_SIT = "sit";
 
     /**
      * PROD 环境 前端项目文件夹名称
