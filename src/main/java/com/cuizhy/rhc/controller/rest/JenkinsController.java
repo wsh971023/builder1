@@ -44,7 +44,7 @@ public class JenkinsController {
         String crumb_url = configDao.getValue("crumb_url", "jenkins");
         String job_info_url = configDao.getValue("job_info_url", "jenkins");
         String build_status_url = configDao.getValue("build_status_url", "jenkins");
-        Thread.ofVirtual().start(() -> {
+        Thread.ofPlatform().start(() -> {
             String work = data.get("work");
             String env = data.get("env");
             String build = data.get("build");
@@ -74,10 +74,10 @@ public class JenkinsController {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            Thread.ofVirtual().start(()->{
+            Thread.ofPlatform().start(()->{
                 jenkinsService.downloadFile(url,download_path,jarDirPath,info);
             });
-            Thread.ofVirtual().start(()->{
+            Thread.ofPlatform().start(()->{
                 gitService.gitClone(info, gitService.getCloneDir(info));
             });
             while (true){
