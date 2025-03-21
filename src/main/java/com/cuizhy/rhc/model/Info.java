@@ -56,6 +56,16 @@ public class Info {
   private String env;
 
   /**
+   * 是否是移动端
+   */
+  private Integer isMobile;
+
+  /**
+   * 前端文件夹名称
+   */
+  private String frontDirName;
+
+  /**
    * 状态信息
    */
   List<Status> statusInfo = new ArrayList<>();

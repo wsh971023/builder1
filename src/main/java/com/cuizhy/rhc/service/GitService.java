@@ -172,9 +172,7 @@ public class GitService {
                 String zipFilePath = Paths.get(cloneDir, "dist.zip").toString();
 
                 // 删除目标目录中的指定文件夹
-                FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_UAT).toString());
-                FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_PROD).toString());
-                FileUtil.deleteDir(Paths.get(cloneDir, Constants.FRONT_DIR_SIT).toString());
+                FileUtil.deleteDir(Paths.get(cloneDir, info.getFrontDirName()).toString());
 
                 // 解压 dist.zip 文件
                 if (zipFilePath.endsWith(".zip")) {
@@ -183,16 +181,7 @@ public class GitService {
                         log.info("已解压文件: {} 到 {}", zipFilePath, cloneDir);
 
                         // 重命名解压后的文件夹
-                        String dirName = "dist";
-                        if (info.getEnv().equals("prod")){
-                            dirName = Constants.FRONT_DIR_PROD;
-                        }
-                        if (info.getEnv().equals("uat")){
-                            dirName = Constants.FRONT_DIR_UAT;
-                        }
-                        if (info.getEnv().equals("sit")){
-                            dirName = Constants.FRONT_DIR_SIT;
-                        }
+                        String dirName = info.getFrontDirName();
                         Path extractedDir = Paths.get(cloneDir, "dist");
                         if (Files.exists(extractedDir)) {
                             Path newDirPath = Paths.get(cloneDir, dirName);
