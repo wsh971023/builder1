@@ -6,6 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
         <link rel="stylesheet" href="lib/layui/css/layui.css">
+        <link rel="stylesheet" href="css/index.css">
         <script src="lib/jquery/jquery.js"></script>
         <script src="lib/layui/layui.js"></script>
         <script src="js/Constants.js"></script>

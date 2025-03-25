@@ -12,9 +12,9 @@ const changeStatus = (id, status) =>{
     const $item = $('#'+id);
     $item.removeClass();
     if (status===Status.SUCCESS){
-        $item.addClass('layui-icon layui-timeline-axis layui-icon-face-smile');
+        $item.addClass('layui-icon layui-timeline-axis rhc-success');
     }else if (status===Status.FAIL){
-        $item.addClass('layui-icon layui-timeline-axis layui-icon-face-cry rhc-fail');
+        $item.addClass('layui-icon layui-timeline-axis rhc-fail');
     }else if (status===Status.RUNNING){
         $item.addClass('layui-icon layui-timeline-axis layui-anim layui-anim-rotate layui-anim-loop layui-icon-loading-1');
     }else {

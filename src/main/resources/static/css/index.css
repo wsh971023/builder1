@@ -1,3 +1,19 @@
 .rhc-fail {
     color: #ff5722;
 }
+.rhc-fail::before {
+    content: "" !important;
+    background-image: url('/img/doge.png');
+    background-size: contain;
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.rhc-success::before {
+    content: "" !important;
+    background-image: url('/img/noprob.png');
+    background-size: contain;
+    width: 20px;
+    height: 20px;
+    display: block;
+}
