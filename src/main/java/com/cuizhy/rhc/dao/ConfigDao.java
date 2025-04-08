@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,25 @@ public class ConfigDao {
      */
     public String getValue(String key, String type) {
         String sql = "select value from config where type=:type and key=:key";
-        return jdbcTemplate.queryForObject(sql, new HashMap<String, Object>() {{
-            put("type", type);
-            put("key", key);
-        }}, String.class);
+        Map<String,Object> params = new HashMap<>();
+        params.put("type", type);
+        params.put("key", key);
+        return jdbcTemplate.queryForObject(sql, params, String.class);
     }
 
+    public void setValue(String key, String type, String value) {
+        String selectSql = "select * from config where type=:type and key=:key";
+        Map<String,Object> params = new HashMap<>();
+        params.put("type", type);
+        params.put("key", key);
+        params.put("value", value);
+        Config config = jdbcTemplate.queryForObject(selectSql,params,new BeanPropertyRowMapper<>(Config.class));
+        if (config != null) {
+            String updateSql = "update config set value=:value where key=:key and type=:type";
+            jdbcTemplate.update(updateSql,params);
+        }else {
+            String insertSql = "insert into config (type,key,value) values(:type,:key,:value)";
+            jdbcTemplate.execute(insertSql,params, PreparedStatement::executeUpdate);
+        }
+    }
 }
