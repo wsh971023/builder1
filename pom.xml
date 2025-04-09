@@ -136,8 +136,9 @@
                 <configuration>
                     <mainClass>com.cuizhy.rhc.RhcBuilderJavaApplication</mainClass>
                     <buildArgs>
+                        <arg>--static</arg>
                         <arg>-H:+AddAllCharsets</arg>
-                        <!--<arg>-H:ReflectionConfigurationFiles=src/main/resources/META-INF/native-image/reflect-config.json</arg>-->
+                        <arg>-H:ReflectionConfigurationFiles=src/main/resources/META-INF/native-image/reflect-config.json</arg>
                     </buildArgs>
 
                 </configuration>
