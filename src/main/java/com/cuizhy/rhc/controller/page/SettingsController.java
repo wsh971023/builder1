@@ -22,4 +22,13 @@ public class SettingsController {
         model.addAttribute("config", config);
         return "settings/jenkins";
     }
+
+    @RequestMapping("git")
+    public String git(Model model){
+        Map<String,Object> config = configDao.getConfig(Constants.CONFIG_TYPE_GIT);
+        model.addAttribute("config", config);
+        return "settings/git";
+    }
+
+
 }

@@ -22,7 +22,7 @@ public class SettingsRestController {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @RequestMapping("save")
+    @RequestMapping("jenkins/save")
     public void save(@RequestBody JenkinsSettingsSavePVO jenkinsSettingsSavePVO) {
         // 将对象转换为 Map
         Map<String, Object> fieldMap = objectMapper.convertValue(jenkinsSettingsSavePVO, new TypeReference<>() {});
@@ -32,6 +32,17 @@ public class SettingsRestController {
                         key,
                         Constants.CONFIG_TYPE_JENKINS,
                         value != null ? value.toString() : ""
+                )
+        );
+    }
+
+    @RequestMapping("git/save")
+    public void saveGit(@RequestBody Map<String, String> gitSettingsSavePVO) {
+        gitSettingsSavePVO.forEach((key, value) ->
+                configDao.setValue(
+                        key,
+                        Constants.CONFIG_TYPE_GIT,
+                        value != null ? value : ""
                 )
         );
     }

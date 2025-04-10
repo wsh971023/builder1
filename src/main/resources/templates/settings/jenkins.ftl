@@ -62,7 +62,7 @@
                 // 显示填写结果，仅作演示用
                 console.log(field);
                 $.post({
-                    url: '/settings/save',
+                    url: '/settings/jenkins/save',
                     contentType: 'application/json',
                     data: JSON.stringify(field),
                     dataType: 'json',
