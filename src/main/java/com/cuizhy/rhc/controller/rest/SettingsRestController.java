@@ -46,4 +46,15 @@ public class SettingsRestController {
                 )
         );
     }
+
+    @RequestMapping("proxy/save")
+    public void saveProxy(@RequestBody Map<String, String> proxySettingsSavePVO) {
+        proxySettingsSavePVO.forEach((key, value) ->
+                configDao.setValue(
+                        key,
+                        Constants.CONFIG_TYPE_PROXY,
+                        value != null ? value : ""
+                )
+        );
+    }
 }

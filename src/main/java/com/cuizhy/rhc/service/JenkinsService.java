@@ -8,6 +8,7 @@ import com.cuizhy.rhc.model.Info;
 import com.cuizhy.rhc.util.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class JenkinsService {
 
     @Autowired
+    @Lazy
     private GlobalRequestManager requestManager;
 
     @Autowired
@@ -38,10 +40,9 @@ public class JenkinsService {
 
 
     private boolean checkLoginStatus(String url,String username){
-        HttpClient client = HttpClient.newBuilder().build();
         HttpRequest loginPageRequest = requestManager.createRequestBuilder(url + "/user/"+username+"/").GET().build();
         try {
-            HttpResponse<String> response = client.send(loginPageRequest, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = requestManager.getSession().send(loginPageRequest, HttpResponse.BodyHandlers.ofString());
             int responseCode = response.statusCode();
             if (responseCode != 200) {
                 return false;

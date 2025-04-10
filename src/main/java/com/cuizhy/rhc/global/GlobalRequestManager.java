@@ -1,37 +1,66 @@
 package com.cuizhy.rhc.global;
 
-import jakarta.annotation.PostConstruct;
+import com.cuizhy.rhc.dao.ConfigDao;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.transport.HttpTransport;
+import org.eclipse.jgit.transport.http.HttpConnection;
+import org.eclipse.jgit.transport.http.HttpConnectionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
-import java.net.CookieManager;
-import java.net.CookiePolicy;
-import java.net.URI;
+import java.io.IOException;
+import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * Jenkins全局请求管理器
  */
 @Component
 @Data
-public class GlobalRequestManager {
+@Slf4j
+public class GlobalRequestManager implements ApplicationRunner {
+
+    @Autowired
+    private ConfigDao configDao;
+
 
     private HttpClient session;
     private Map<String,String> cookies = new HashMap<>();
 
     private String crumb;
-    /**
-     * bean初始化
-     * */
-    @PostConstruct
-    private void init(){
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
         CookieManager cookieManager = new CookieManager();
         cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
 
-        this.session = HttpClient.newBuilder()
+        HttpClient.Builder builder = HttpClient.newBuilder();
+        Map<String,Object> proxyConfig = configDao.getConfig("proxy");
+        if (!CollectionUtils.isEmpty(proxyConfig) && proxyConfig.get("enabled") !=null){
+            int enabled = Integer.parseInt(proxyConfig.get("enabled").toString());
+            if (enabled == 1){
+                String proxyHost = proxyConfig.get("host").toString();
+                String proxyPort = proxyConfig.get("port").toString();
+                InetSocketAddress proxyAddress = new InetSocketAddress(proxyHost, Integer.parseInt(proxyPort));
+                ProxySelector proxySelector = ProxySelector.of(proxyAddress);
+                ProxySelector.setDefault(proxySelector);
+                builder.proxy(proxySelector);
+
+                System.setProperty("http.proxyHost", proxyHost);
+                System.setProperty("http.proxyPort", proxyPort);
+
+                log.info("network proxy set successful");
+            }
+        }
+
+        this.session = builder
                 .followRedirects(HttpClient.Redirect.NORMAL) // 启用正常重定向
                 .cookieHandler(cookieManager)               // 绑定 CookieManager
                 .build();
@@ -58,5 +87,20 @@ public class GlobalRequestManager {
                 .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
                 .header("Accept", "application/json")
                 .header("Cookie", buildCookieHeader());
+    }
+
+    public static class ProxyAuthenticator extends Authenticator {
+        private final String username;
+        private final String password;
+
+        public ProxyAuthenticator(String username, String password) {
+            this.username = username;
+            this.password = password;
+        }
+
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return new PasswordAuthentication(username, password.toCharArray());
+        }
     }
 }

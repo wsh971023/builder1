@@ -30,5 +30,19 @@ public class SettingsController {
         return "settings/git";
     }
 
+    @RequestMapping("proxy")
+    public String proxy(Model model){
+        Map<String,Object> config = configDao.getConfig(Constants.CONFIG_TYPE_PROXY);
+        model.addAttribute("config", config);
+
+        //获取当前系统代理配置
+        if (System.getProperty("http.proxyHost") != null && System.getProperty("http.proxyPort") != null){
+            model.addAttribute("currentProxy", System.getProperty("http.proxyHost") + ":" + System.getProperty("http.proxyPort"));
+        }else {
+            model.addAttribute("currentProxy", "null");
+        }
+        return "settings/proxy";
+    }
+
 
 }

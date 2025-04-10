@@ -24,7 +24,7 @@
                     <dl class="layui-nav-child">
                         <dd><a href="/settings/jenkins">Jenkins配置</a></dd>
                         <dd><a href="/settings/git">Git配置</a></dd>
-                        <dd><a href="">代理设置</a></dd>
+                        <dd><a href="/settings/proxy">代理设置</a></dd>
                     </dl>
                 </li>
             </ul>

@@ -82,7 +82,7 @@ public class GitService {
         }catch (Exception e){
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_FAIL);
             cacheUtil.addInfoToJobList(info);
-            throw new RuntimeException("git clone 失败",e);
+            throw new RuntimeException("git clone fail",e);
         }finally {
             if (result != null) {
                 result.getRepository().close(); // 确保关闭Git对象

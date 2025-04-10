@@ -40,4 +40,5 @@ public class Constants {
     public static final String CONFIG_TYPE_JENKINS = "jenkins";
 
     public static final String CONFIG_TYPE_GIT = "git";
+    public static final String CONFIG_TYPE_PROXY = "proxy";
 }
