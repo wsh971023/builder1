@@ -3,6 +3,7 @@ package com.cuizhy.rhc.dao;
 import com.cuizhy.rhc.model.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -24,7 +25,13 @@ public class ConfigDao {
         String sql = "select * from config where type=:type";
         Map<String,Object> params = new HashMap<>();
         params.put("type", type);
-        List<Config> configs = jdbcTemplate.query(sql,params,new BeanPropertyRowMapper<>(Config.class));
+        List<Config> configs = jdbcTemplate.query(sql,params,(rs, rowNum) -> Config.builder()
+                        .id(rs.getLong("id"))
+                        .type(rs.getString("type"))
+                        .key(rs.getString("key"))
+                        .value(rs.getString("value"))
+                        .build()
+        );
 
         //返回 { key:value,key:value}
         return configs.stream().collect(HashMap::new,(m,v)->m.put(v.getKey(),v.getValue()),HashMap::putAll);
