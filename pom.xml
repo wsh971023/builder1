@@ -59,17 +59,6 @@
             <artifactId>org.eclipse.jgit</artifactId>
             <version>7.1.0.202411261347-r</version>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.jgit</groupId>
-            <artifactId>org.eclipse.jgit.http.apache</artifactId>
-            <version>7.1.0.202411261347-r</version> <!-- 版本替换成你项目使用的 -->
-        </dependency>
-        <!-- pom.xml -->
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.5.13</version>
-        </dependency>
 
 
 
