@@ -5,13 +5,13 @@
         <div class="layui-form-item">
             <label class="layui-form-label">地址</label>
             <div class="layui-input-block">
-                <input type="text" name="host" value="${config.host}" lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+                <input type="text" name="host" value="${config.host!}" lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
             </div>
         </div>
         <div class="layui-form-item">
             <label class="layui-form-label">端口</label>
             <div class="layui-input-block">
-                <input type="text" name="port" value="${config.port}" lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+                <input type="text" name="port" value="${config.port!}" lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
             </div>
         </div>
         <div class="layui-form-item">
