@@ -151,7 +151,9 @@ public class GitService {
      * @return 克隆目录
      */
     public String getCloneDir(Info info) {
-        return FileUtil.getRuntimeAbsolutePath()+File.separator + Constants.GIT_CLONE_DIR + File.separator+ info.getName();
+        int lastSlashIndex = info.getRepoUrl().lastIndexOf('/');
+        String folderNameWithGit = info.getRepoUrl().substring(lastSlashIndex + 1);
+        return FileUtil.getRuntimeAbsolutePath()+File.separator + Constants.GIT_CLONE_DIR + File.separator+ folderNameWithGit.replace(".git", "");
     }
 
     public void copyFile(Info info){
