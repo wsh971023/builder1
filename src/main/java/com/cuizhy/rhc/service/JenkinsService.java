@@ -1,6 +1,5 @@
 package com.cuizhy.rhc.service;
 
-import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.constants.Constants;
 import com.cuizhy.rhc.dao.ConfigDao;
 import com.cuizhy.rhc.global.GlobalRequestManager;
@@ -11,9 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import java.io.*;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.*;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.nio.file.*;
@@ -34,9 +31,6 @@ public class JenkinsService {
 
     @Autowired
     private ConfigDao configDao;
-
-    @Autowired
-    private CacheUtil cacheUtil;
 
 
     private boolean checkLoginStatus(String url,String username){
@@ -69,7 +63,6 @@ public class JenkinsService {
         }
 
         try {
-            cacheUtil.set(Constants.JENKINS_LOGIN_CACHE_KEY,Constants.JOB_STATUS_RUNNING);
             log.info("正在请求登录页面...");
             HttpRequest loginPageRequest = requestManager.createRequestBuilder(url + "/login").GET().build();
             HttpResponse<String> loginPageResponse = requestManager.getSession().send(loginPageRequest, HttpResponse.BodyHandlers.ofString());
@@ -97,7 +90,6 @@ public class JenkinsService {
             saveCookies(loginResponse.headers());
             log.info("登录成功...");
         }catch (Exception e){
-            cacheUtil.set(Constants.JENKINS_LOGIN_CACHE_KEY,Constants.JOB_STATUS_FAIL);
             throw new RuntimeException("Jenkins 登录失败",e);
         }
     }
@@ -131,7 +123,6 @@ public class JenkinsService {
             requestManager.setCrumb(jsonNode.get("crumb").asText());
             return jsonNode.get("crumb").asText();
         }catch (Exception e){
-            cacheUtil.set(Constants.JENKINS_LOGIN_CACHE_KEY,Constants.JOB_STATUS_FAIL);
             throw new RuntimeException("Jenkins Crumb 获取失败",e);
         }
     }
@@ -140,8 +131,6 @@ public class JenkinsService {
     public void triggerBuild(String url,Info info){
         log.info("正在触发构建任务...");
         try {
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_RUNNING);
-            cacheUtil.addInfoToJobList(info);
             String buildUrl = url + "/job/" + info.getJobName() + "/build";
 
             HttpRequest buildRequest = requestManager.createRequestBuilder(buildUrl)
@@ -157,8 +146,6 @@ public class JenkinsService {
 
             log.info("开始构建...");
         } catch (Exception e) {
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("Jenkins 触发构建失败",e);
         }
     }
@@ -195,7 +182,31 @@ public class JenkinsService {
         return !building;
     }
 
-    public boolean checkBuildStatus(String jenkinsUrl, String buildStatusUrl, int buildNumber, Info info) throws Exception {
+    /**
+     * 检查当前任务是不是正在building
+     */
+    public boolean getBuildStatus(String jenkinsUrl, String buildStatusUrl, int buildNumber, Info info) throws Exception {
+        String statusUrl = String.format(buildStatusUrl, buildNumber, info.getJobName());
+        HttpRequest statusRequest = HttpRequest.newBuilder()
+                .uri(URI.create(jenkinsUrl + statusUrl.replace("{job_name}", info.getJobName()).replace("{build_number}", String.valueOf(buildNumber))))
+                .GET()
+                .header("Jenkins-Crumb", requestManager.getCrumb())
+                .build();
+        HttpResponse<String> statusResponse = requestManager.getSession().send(statusRequest, HttpResponse.BodyHandlers.ofString());
+        if (statusResponse.statusCode() != 200) {
+            log.info("获取构建任务状态失败！响应内容: {}", statusResponse.body());
+            throw new RuntimeException("Jenkins GetBuildStatus Error");
+        }
+        log.info("statusResponse: {}", statusResponse.body());
+        // 解析 JSON 响应为 JsonNode
+        JsonNode statusData = objectMapper.readTree(statusResponse.body());
+
+        // 提取字段数据
+        boolean building = statusData.get("building").asBoolean(); // 获取布尔值
+        return building;
+    }
+
+    public void checkBuildStatus(String jenkinsUrl, String buildStatusUrl, int buildNumber, Info info) throws Exception {
         log.info("正在监听构建任务状态...");
 
         String statusUrl = String.format(buildStatusUrl, buildNumber, info.getJobName());
@@ -229,35 +240,28 @@ public class JenkinsService {
                 if ("SUCCESS".equals(result)) {
                     log.info("构建任务 " + buildNumber + " 已成功完成！");
                     success = true;
-                    info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_SUCCESS);
-                    cacheUtil.addInfoToJobList(info);
                 } else if ("FAILURE".equals(result)) {
                     log.info("构建任务 " + buildNumber + " 执行失败！");
-                    info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_FAIL);
-                    cacheUtil.addInfoToJobList(info);
                 } else if ("ABORTED".equals(result)){
                     log.info("构建任务 " + buildNumber + " 状态已放弃，结果: " + result);
-                    info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_SUCCESS);
-                    cacheUtil.addInfoToJobList(info);
+                    success = true;
                 } else {
                     log.info("构建任务 " + buildNumber + " 状态未知，结果: " + result);
-                    info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_FAIL);
-                    cacheUtil.addInfoToJobList(info);
                 }
                 break;
             }
         }
 
-        return success;
+        if (!success){
+            throw new RuntimeException("Jenkins Build Error");
+        }
     }
 
     public int getBuildNumber(String jenkinsUrl, String jobInfoUrl,String jobName, boolean buildRequired) throws Exception {
         if (buildRequired) {
             log.info("本次任务需等待Jenkins构建...");
-            log.info("正在获取当前构建任务编号, 等待30秒...");
+            log.info("正在获取当前构建任务编号, 等待10秒...");
             Thread.sleep(10000); // 等待30秒，确保构建任务启动
-        } else {
-            log.info("本次任务无需等待Jenkins构建...");
         }
 
         // 获取任务信息
@@ -281,7 +285,7 @@ public class JenkinsService {
             throw new RuntimeException("无法获取最新的构建编号！");
         }
 
-        log.info("当前最新的构建任务编号：" + buildNumber);
+        //log.info("当前最新的构建任务编号：{}", buildNumber);
         return buildNumber;
     }
 
@@ -290,8 +294,6 @@ public class JenkinsService {
         log.info("准备下载文件: " + filePath + "...");
 
         try{
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD,Constants.JOB_STATUS_RUNNING);
-            cacheUtil.addInfoToJobList(info);
             String fileUrl = url + "/job/"+info.getJobName() + "/ws/" + filePath;
             HttpRequest fileRequest = requestManager.createRequestBuilder(fileUrl)
                     .header("Jenkins-Crumb", requestManager.getCrumb())
@@ -333,12 +335,8 @@ public class JenkinsService {
                 }
                 System.out.println("\nDownload Success");
             }
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD,Constants.JOB_STATUS_SUCCESS);
-            cacheUtil.addInfoToJobList(info);
             log.info("文件已成功下载到: " + savePath);
         }catch (Exception e){
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("下载文件失败！",e);
         }
     }

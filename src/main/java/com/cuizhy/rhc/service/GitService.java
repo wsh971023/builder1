@@ -58,8 +58,6 @@ public class GitService {
     public void gitClone(Info info,String cloneDir){
         Git result = null;
         try{
-            info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_RUNNING);
-            cacheUtil.addInfoToJobList(info);
             File dir = new File(cloneDir);
             if (dir.exists()){
                 log.info("删除目录：{}",dir.getAbsolutePath());
@@ -76,12 +74,8 @@ public class GitService {
                     .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
                     .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)));
             result = cloneCommand.call();
-            info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_SUCCESS);
-            cacheUtil.addInfoToJobList(info);
             log.info("已克隆到 {}", result.getRepository().getDirectory().getParent());
         }catch (Exception e){
-            info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("git clone fail",e);
         }finally {
             if (result != null) {

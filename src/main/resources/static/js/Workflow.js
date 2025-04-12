@@ -104,9 +104,22 @@ const GetJobStatus = (data) => {
     });
 }
 
+/*
 const SingletonStart = (data) => {
     $.post({
         url: '/api/jenkins/single-start',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        dataType: 'json',
+        success: (res)=>{
+            setTimeout(()=>{GetJobStatus(data)}, 10000)
+        }
+    });
+}*/
+
+const SingletonStart = (data) => {
+    $.post({
+        url: '/api/task/submit',
         contentType: 'application/json',
         data: JSON.stringify(data),
         dataType: 'json',
