@@ -93,12 +93,12 @@ public class GitService {
         //最大压缩
         git.getRepository().getConfig().setInt("core", null, "compression", 9);
 
-        git.add().addFilepattern(".").call();
+        //git.add().addFilepattern(".").call();
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = now.format(formatter);
         String commitMessage = String.format("rhc-builder commit and push at %s", timestamp);
-        git.commit().setMessage(commitMessage).call();
+        git.commit().setAll(true).setMessage(commitMessage).call();
         log.info("提交成功...");
         return git;
     }
