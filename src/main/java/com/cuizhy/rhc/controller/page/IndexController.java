@@ -13,4 +13,9 @@ public class IndexController {
         model.addAttribute("info","666");
         return "index";
     }
+
+    @RequestMapping("task")
+    public String task(Model model) {
+        return "task_view";
+    }
 }

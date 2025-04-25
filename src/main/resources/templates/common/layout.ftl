@@ -18,7 +18,8 @@
         <div class="layui-header">
             <div class="layui-logo layui-hide-xs layui-bg-black">Rhc Builder</div>
             <ul class="layui-nav layui-layout-left">
-                <li class="layui-nav-item layui-hide-xs"><a href="/">执行</a></li>
+                <li class="layui-nav-item layui-hide-xs"><a href="/">单任务</a></li>
+                <li class="layui-nav-item layui-hide-xs"><a href="/task">多任务 ᴮᵉᵗᵃ</a></li>
                 <li class="layui-nav-item">
                     <a href="javascript:;">设置</a>
                     <dl class="layui-nav-child">
