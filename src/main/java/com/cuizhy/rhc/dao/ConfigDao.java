@@ -54,7 +54,13 @@ public class ConfigDao {
         params.put("type", type);
         params.put("key", key);
         params.put("value", value);
-        Config config = jdbcTemplate.queryForObject(selectSql,params,new BeanPropertyRowMapper<>(Config.class));
+        Config config = jdbcTemplate.queryForObject(selectSql,params,(rs, rowNum) -> Config.builder()
+                .id(rs.getLong("id"))
+                .type(rs.getString("type"))
+                .key(rs.getString("key"))
+                .value(rs.getString("value"))
+                .build()
+        );
         if (config != null) {
             String updateSql = "update config set value=:value where key=:key and type=:type";
             jdbcTemplate.update(updateSql,params);
