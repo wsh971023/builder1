@@ -167,7 +167,6 @@
                         <artifactId>native-maven-plugin</artifactId>
                         <configuration>
                             <buildArgs>
-                                <arg>--static</arg>
                                 <arg>-march=compatibility</arg>
                                 <arg>-H:+AddAllCharsets</arg>
                                 <arg>-H:ReflectionConfigurationFiles=src/main/resources/META-INF/native-image/reflect-config.json</arg>
