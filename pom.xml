@@ -151,4 +151,56 @@
         </plugins>
     </build>
 
+
+    <profiles>
+        <profile>
+            <id>windows-build</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <buildArgs>
+                                <arg>--static</arg>
+                                <arg>-march=compatibility</arg>
+                                <arg>-H:+AddAllCharsets</arg>
+                                <arg>-H:ReflectionConfigurationFiles=src/main/resources/META-INF/native-image/reflect-config.json</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>linux-build</id>
+            <activation>
+                <os>
+                    <family>linux</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <configuration>
+                            <buildArgs>
+                                <arg>-march=compatibility</arg>
+                                <arg>-H:+AddAllCharsets</arg>
+                                <arg>-H:ReflectionConfigurationFiles=src/main/resources/META-INF/native-image/reflect-config.json</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
