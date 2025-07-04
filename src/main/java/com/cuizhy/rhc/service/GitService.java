@@ -5,6 +5,9 @@ import com.cuizhy.rhc.dao.ConfigDao;
 import com.cuizhy.rhc.model.Info;
 import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.util.FileUtil;
+import com.cuizhy.rhc.util.GitUtil;
+import com.cuizhy.rhc.util.JenkinsUtil;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
@@ -35,7 +38,7 @@ public class GitService {
     private CacheUtil cacheUtil;
 
     @Autowired
-    private JenkinsService jenkinsService;
+    private JenkinsUtil jenkinsUtil;
 
     /**
      * 获取用户名
@@ -55,107 +58,42 @@ public class GitService {
     }
 
 
-    public void gitClone(Info info,String cloneDir){
-        Git result = null;
-        try{
-            File dir = new File(cloneDir);
-            if (dir.exists()){
-                log.info("删除目录：{}",dir.getAbsolutePath());
-                FileUtil.deleteDir(cloneDir);
-            }
-            dir.mkdirs();
-
-            CloneCommand cloneCommand = Git.cloneRepository()
-                    .setURI(info.getRepoUrl())
-                    .setDirectory(new File(cloneDir))
-                    .setBranch(info.getBranch())
-                    .setDepth(1)
-                    .setCloneAllBranches(false)
-                    .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken()))
-                    .setProgressMonitor(new TextProgressMonitor(new PrintWriter(System.out)));
-            result = cloneCommand.call();
-            log.info("已克隆到 {}", result.getRepository().getDirectory().getParent());
-        }catch (Exception e){
-            throw new RuntimeException("git clone fail",e);
-        }finally {
-            if (result != null) {
-                result.getRepository().close(); // 确保关闭Git对象
-            }
-        }
+    @SneakyThrows
+    public void gitClone(Info info){
+        GitUtil.gitClone(info.getRepoUrl(),info.getBranch(),getUserName(),getGenerateToken());
     }
 
-    public Git gitCommit(String cloneDir) throws IOException, GitAPIException {
+    @SneakyThrows
+    private void gitCommit(String remote_repo_url){
         log.info("正在提交...");
-        Git git = Git.open(new File(cloneDir));
-
-        //文件缓冲区
-        git.getRepository().getConfig().setInt("http", null, "postBuffer", 524288000);
-        //最大压缩
-        git.getRepository().getConfig().setInt("core", null, "compression", 9);
-
-        git.add().addFilepattern(".").call();
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String timestamp = now.format(formatter);
         String commitMessage = String.format("rhc-builder commit and push at %s", timestamp);
-        git.commit().setAll(true).setMessage(commitMessage).call();
-        log.info("提交成功...");
-        return git;
-    }
-
-    public void gitPush(Git git) throws GitAPIException {
-        log.info("正在推送...");
-        git.push()
-                .setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken())).call();
-        log.info("推送成功...");
+        GitUtil.gitCommit(remote_repo_url,commitMessage);
     }
 
     public void gitCommitAndPush(Info info){
-        Git git = null;
         try{
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
-            git = this.gitCommit(this.getCloneDir(info));
-            this.gitPush(git);
+            this.gitCommit(info.getRepoUrl());
+            GitUtil.gitPush(info.getRepoUrl(),getUserName(),getGenerateToken());
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
         }catch (Exception e){
             info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_FAIL);
             cacheUtil.addInfoToJobList(info);
             throw new RuntimeException("git commit and push 失败",e);
-        }finally {
-            if (git != null) {
-                git.getRepository().close();
-            }
         }
-    }
-
-    public void gitPull() {
-        try {
-            Git git = Git.open(new File(this.getCloneDir((Info) cacheUtil.get("info"))));
-            git.pull().setCredentialsProvider(new UsernamePasswordCredentialsProvider(this.getUserName(), this.getGenerateToken())).call();
-        } catch (IOException | GitAPIException e) {
-            log.error("git pull 失败",e);
-        }
-    }
-
-    /**
-     * 获取克隆目录
-     * @param info 构建目标
-     * @return 克隆目录
-     */
-    public String getCloneDir(Info info) {
-        int lastSlashIndex = info.getRepoUrl().lastIndexOf('/');
-        String folderNameWithGit = info.getRepoUrl().substring(lastSlashIndex + 1);
-        return FileUtil.getRuntimeAbsolutePath()+File.separator + Constants.GIT_CLONE_DIR + File.separator+ folderNameWithGit.replace(".git", "");
     }
 
     public void copyFile(Info info){
         try{
             info.setStatus(Constants.JOB_PROGRESS_COPY_FILE,Constants.JOB_STATUS_RUNNING);
             cacheUtil.addInfoToJobList(info);
-            String cloneDir = this.getCloneDir(info);
-            String downloadFilePath = jenkinsService.getDownloadPath(info);
+            String cloneDir = GitUtil.getCloneDir(info.getRepoUrl());
+            String downloadFilePath = jenkinsUtil.getDownloadPath(info.getFilepath());
 
             Path sourceFile = Paths.get(downloadFilePath);
             Path targetDir = Paths.get(cloneDir);

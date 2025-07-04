@@ -9,6 +9,7 @@ import com.cuizhy.rhc.model.Status;
 import com.cuizhy.rhc.service.GitService;
 import com.cuizhy.rhc.service.JenkinsService;
 import com.cuizhy.rhc.util.FileUtil;
+import com.cuizhy.rhc.util.JenkinsUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,13 +29,14 @@ public class JenkinsController {
     private JenkinsService jenkinsService;
     @Autowired
     private GitService gitService;
-
     @Autowired
     private ConfigDao configDao;
     @Autowired
     private InfoDao infoDao;
     @Autowired
     private CacheUtil cacheUtil;
+    @Autowired
+    private JenkinsUtil jenkinsUtil;
 
     @RequestMapping("/single-start")
     public void singleStart(@RequestBody Map<String,String> data) throws Exception {
@@ -49,14 +51,14 @@ public class JenkinsController {
             String env = data.get("env");
             String build = data.get("build");
             Info info = infoDao.getInfo(work, env);
-            jenkinsService.loginToJenkins(url, username, password);
-            jenkinsService.getJenkinsCrumb(url + crumb_url);
+            jenkinsUtil.loginToJenkins(url, username, password);
+            jenkinsUtil.getJenkinsCrumb(url + crumb_url);
             cacheUtil.set(Constants.JENKINS_LOGIN_CACHE_KEY,Constants.JOB_STATUS_SUCCESS);
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_LOGIN,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
             boolean need_build = "on".equalsIgnoreCase(build);
             if (need_build){
-                jenkinsService.triggerBuild(url, info);
+                jenkinsUtil.triggerBuild(url, info.getJobName());
             }else{
                 info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_SUCCESS);
             }
@@ -65,20 +67,20 @@ public class JenkinsController {
             String jarDirPath = FileUtil.getRuntimeAbsolutePath() + File.separator + Constants.JENKINS_DOWNLOAD_DIR;
             Integer number = null;
             try {
-                number = jenkinsService.getBuildNumber(url,job_info_url,info.getJobName(),need_build);
+                number = jenkinsUtil.getBuildNumber(url,job_info_url,info.getJobName(),need_build);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             try {
-                jenkinsService.checkBuildStatus(url,build_status_url, number, info);
+                jenkinsUtil.checkBuildStatus(url,build_status_url, number, info);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
             Thread.ofPlatform().start(()->{
-                jenkinsService.downloadFile(url,download_path,jarDirPath,info);
+                jenkinsUtil.downloadFile(url,download_path,jarDirPath,info.getJobName());
             });
             Thread.ofPlatform().start(()->{
-                gitService.gitClone(info, gitService.getCloneDir(info));
+                gitService.gitClone(info);
             });
             while (true){
                 LockSupport.parkNanos(1000 * 1_000_000); // 暂停一秒
@@ -102,8 +104,8 @@ public class JenkinsController {
         String crumb_url = configDao.getValue("crumb_url", "jenkins");
 
         Thread.ofVirtual().start(() -> {
-            jenkinsService.loginToJenkins(url, username, password);
-            jenkinsService.getJenkinsCrumb(url + crumb_url);
+            jenkinsUtil.loginToJenkins(url, username, password);
+            jenkinsUtil.getJenkinsCrumb(url + crumb_url);
             cacheUtil.set(Constants.JENKINS_LOGIN_CACHE_KEY,Constants.JOB_STATUS_SUCCESS);
         });
         return true;
@@ -137,7 +139,7 @@ public class JenkinsController {
 
         String url = configDao.getValue("url", "jenkins");
         Thread.ofVirtual().start(() -> {
-            jenkinsService.triggerBuild(url, info);
+            jenkinsUtil.triggerBuild(url, info.getJobName());
         });
     }
 
@@ -156,6 +158,6 @@ public class JenkinsController {
         // 获取 JAR 包所在的路径
         String jarDirPath = FileUtil.getRuntimeAbsolutePath() + File.separator + Constants.JENKINS_DOWNLOAD_DIR;
 
-        jenkinsService.downloadFile(url,download_path,jarDirPath,info);
+        jenkinsUtil.downloadFile(url,download_path,jarDirPath,info.getJobName());
     }
 }

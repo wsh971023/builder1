@@ -1,14 +1,15 @@
 package com.cuizhy.rhc.service;
 
+import com.cuizhy.rhc.annotation.ProcessPoint;
 import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.constants.Constants;
 import com.cuizhy.rhc.dao.ConfigDao;
 import com.cuizhy.rhc.dao.InfoDao;
 import com.cuizhy.rhc.model.Info;
 import com.cuizhy.rhc.util.FileUtil;
+import com.cuizhy.rhc.util.JenkinsUtil;
 import com.cuizhy.rhc.vo.TaskSubmitPVO;
 import com.cuizhy.rhc.vo.TaskSubmitRVO;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,9 @@ public class WorkService {
 
     @Autowired
     private CacheUtil cacheUtil;
+
+    @Autowired
+    private JenkinsUtil jenkinsUtil;
 
     public TaskSubmitRVO start(TaskSubmitPVO taskSubmitPVO) throws Exception {
         String work = taskSubmitPVO.getWork();
@@ -67,27 +71,21 @@ public class WorkService {
         return taskSubmitRVO;
     }
 
+    @ProcessPoint(progress = Constants.JOB_PROGRESS_JENKINS_LOGIN)
     public void jenkinsLogin(TaskSubmitPVO taskSubmitPVO){
         String username = configDao.getValue("username", "jenkins");
         String password = configDao.getValue("password", "jenkins");
         String url = configDao.getValue("url", "jenkins");
         String crumb_url = configDao.getValue("crumb_url", "jenkins");
-
-        Info info = taskSubmitPVO.getInfoConfig();
-        info.setStatus(Constants.JOB_PROGRESS_JENKINS_LOGIN,Constants.JOB_STATUS_RUNNING);
-        cacheUtil.addInfoToJobList(info);
-        try{
-            jenkinsService.loginToJenkins(url, username, password);
-            jenkinsService.getJenkinsCrumb(url + crumb_url);
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_LOGIN,Constants.JOB_STATUS_SUCCESS);
-            cacheUtil.addInfoToJobList(info);
-        }catch (Exception e){
-            info.setStatus(Constants.JOB_PROGRESS_JENKINS_LOGIN,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
-        }
+        jenkinsUtil.loginToJenkins(url, username, password);
+        jenkinsUtil.getJenkinsCrumb(url + crumb_url);
     }
 
-    
+    /**
+     * 触发jenkins构建
+     * @param taskSubmitPVO
+     * @throws Exception
+     */
     public void jenkinsBuild(TaskSubmitPVO taskSubmitPVO) throws Exception {
         String build = taskSubmitPVO.getBuild();
         String work = taskSubmitPVO.getWork();
@@ -97,7 +95,7 @@ public class WorkService {
         boolean need_build = "on".equalsIgnoreCase(build);
         boolean isBuilding = this.jenkinsCheckBuilding(taskSubmitPVO);
         if (need_build && !isBuilding){
-            jenkinsService.triggerBuild(url, info);
+            jenkinsUtil.triggerBuild(url, info.getJobName());
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_RUNNING);
         }else if (isBuilding){
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_RUNNING);
@@ -114,9 +112,9 @@ public class WorkService {
         String job_info_url = configDao.getValue("job_info_url", "jenkins");
         String build_status_url = configDao.getValue("build_status_url", "jenkins");
         log.info("check status before jenkins build... ");
-        int number = jenkinsService.getBuildNumber(url,job_info_url,info.getJobName(),false);
+        int number = jenkinsUtil.getBuildNumber(url,job_info_url,info.getJobName(),false);
         log.info("before build number: {}",number);
-        return jenkinsService.getBuildStatus(url,build_status_url, number, info);
+        return jenkinsUtil.getBuildStatus(url,job_info_url,build_status_url, info.getJobName());
     }
 
     
@@ -127,9 +125,9 @@ public class WorkService {
         String work = taskSubmitPVO.getWork();
         String env = taskSubmitPVO.getEnv();
         Info info = cacheUtil.getInfoFromJobList(env,work);
-        int number = jenkinsService.getBuildNumber(url,job_info_url,info.getJobName(),true);
+        int number = jenkinsUtil.getBuildNumber(url,job_info_url,info.getJobName(),true);
         try {
-            jenkinsService.checkBuildStatus(url,build_status_url, number, info);
+            jenkinsUtil.checkBuildStatus(url,build_status_url, number, info);
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
         }catch (Exception e){
@@ -150,7 +148,7 @@ public class WorkService {
         info.setStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD,Constants.JOB_STATUS_RUNNING);
         cacheUtil.addInfoToJobList(info);
         try{
-            jenkinsService.downloadFile(url,download_path,jarDirPath,info);
+            jenkinsUtil.downloadFile(url,download_path,jarDirPath,info.getJobName());
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_DOWNLOAD,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
         }catch (Exception e){
@@ -167,7 +165,7 @@ public class WorkService {
         info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_RUNNING);
         cacheUtil.addInfoToJobList(info);
         try{
-            gitService.gitClone(info,gitService.getCloneDir(info));
+            gitService.gitClone(info);
             info.setStatus(Constants.JOB_PROGRESS_GIT_CLONE,Constants.JOB_STATUS_SUCCESS);
             cacheUtil.addInfoToJobList(info);
         }catch (Exception e){
