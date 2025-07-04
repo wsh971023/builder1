@@ -2,7 +2,7 @@ package com.cuizhy.rhc.controller.rest;
 
 import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.global.TaskQueueManager;
-import com.cuizhy.rhc.service.WorkService;
+import com.cuizhy.rhc.service.WorkflowService;
 import com.cuizhy.rhc.vo.TaskSubmitPVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +20,7 @@ public class TaskRestController {
     private TaskQueueManager taskQueueManager;
 
     @Autowired
-    private WorkService workService;
+    private WorkflowService workflowService;
 
     @Autowired
     private CacheUtil cacheUtil;
@@ -29,7 +29,7 @@ public class TaskRestController {
     public void submitTask(@RequestBody TaskSubmitPVO taskSubmitPVO) {
         taskQueueManager.submitTask(() -> {
             try {
-                workService.start(taskSubmitPVO);
+                workflowService.start(taskSubmitPVO);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

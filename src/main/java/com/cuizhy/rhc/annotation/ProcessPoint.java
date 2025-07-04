@@ -1,5 +1,7 @@
 package com.cuizhy.rhc.annotation;
 
+import com.cuizhy.rhc.enums.TaskPhase;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -18,4 +20,10 @@ public @interface ProcessPoint {
      * @return 任务进度标识
      */
     String progress();
+
+    /**
+     * 定义此方法在任务生命周期中的阶段。
+     * 默认为 WRAP，以兼容旧的、简单的用法。
+     */
+    TaskPhase phase() default TaskPhase.WRAP;
 }
