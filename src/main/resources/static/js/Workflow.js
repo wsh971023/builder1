@@ -22,45 +22,6 @@ const changeStatus = (id, status) =>{
     }
 }
 
-/**
- * Jenkins服务登录
- * @constructor
- */
-const JenkinsLogin = () => {
-    $.ajax('/api/jenkins/login').then(res=>{
-        if (res === false){
-            changeStatus('jenkins_login', Status.FAIL)
-            layer.msg('Jenkins服务登录失败', {icon: 5});
-        }
-        changeStatus('jenkins_login', Status.SUCCESS)
-    });
-}
-
-/**
- * Jenkins构建
- */
-const JenkinsBuild = (data) => {
-    $.post({
-        url: '/api/jenkins/build',
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        dataType: 'json',
-        success: (res)=>{
-
-        }
-    });
-}
-
-const DownLoadFile = () => {
-    $.ajax({
-        url: '/api/jenkins/download-file',
-        method: 'GET',
-        success: function(res) {
-
-        }
-    })
- }
-
 const GetJobStatus = (data) => {
     $.post({
         url: '/api/status/get',
@@ -103,19 +64,6 @@ const GetJobStatus = (data) => {
         }
     });
 }
-
-/*
-const SingletonStart = (data) => {
-    $.post({
-        url: '/api/jenkins/single-start',
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        dataType: 'json',
-        success: (res)=>{
-            setTimeout(()=>{GetJobStatus(data)}, 10000)
-        }
-    });
-}*/
 
 const SingletonStart = (data) => {
     $.post({

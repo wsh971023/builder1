@@ -2,12 +2,9 @@ package com.cuizhy.rhc.cache;
 
 import com.cuizhy.rhc.constants.Constants;
 import com.cuizhy.rhc.model.Info;
-import lombok.Getter;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 

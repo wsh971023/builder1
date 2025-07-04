@@ -14,23 +14,23 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Config {
 
-  /**
-   * 主键
-   */
-  private long id;
+    /**
+     * 主键
+     */
+    private long id;
 
-  /**
-   * 类型  jenkins  / git
-   */
-  private String type;
+    /**
+     * 类型  jenkins  / git
+     */
+    private String type;
 
-  /**
-   * 键
-   */
-  private String key;
+    /**
+     * 键
+     */
+    private String key;
 
-  /**
-   * 值
-   */
-  private String value;
+    /**
+     * 值
+     */
+    private String value;
 }

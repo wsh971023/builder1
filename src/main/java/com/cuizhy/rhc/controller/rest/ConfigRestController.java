@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/config")
-public class ConfigController {
+public class ConfigRestController {
 
     @Autowired
     private ConfigDao dao;

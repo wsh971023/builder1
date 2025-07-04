@@ -3,20 +3,15 @@ package com.cuizhy.rhc.global;
 import com.cuizhy.rhc.dao.ConfigDao;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jgit.transport.HttpTransport;
-import org.eclipse.jgit.transport.http.HttpConnection;
-import org.eclipse.jgit.transport.http.HttpConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.io.IOException;
 import java.net.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -89,18 +84,4 @@ public class GlobalRequestManager implements ApplicationRunner {
                 .header("Cookie", buildCookieHeader());
     }
 
-    public static class ProxyAuthenticator extends Authenticator {
-        private final String username;
-        private final String password;
-
-        public ProxyAuthenticator(String username, String password) {
-            this.username = username;
-            this.password = password;
-        }
-
-        @Override
-        protected PasswordAuthentication getPasswordAuthentication() {
-            return new PasswordAuthentication(username, password.toCharArray());
-        }
-    }
 }

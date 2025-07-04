@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/info")
-public class InfoController {
+public class InfoRestController {
 
     @Autowired
     private InfoDao infoDao;
