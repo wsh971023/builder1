@@ -17,3 +17,41 @@
     height: 20px;
     display: block;
 }
+
+/* 状态：运行中 */
+.rhc-status-running .layui-colla-title {
+    color: #1E9FFF; /* Layui 的主色蓝 */
+}
+.rhc-status-running .status-icon {
+    color: #1E9FFF;
+}
+
+/* 状态：已完成/成功 */
+.rhc-status-success .layui-colla-title {
+    color: #16b777; /* Layui 的成功绿 */
+}
+.rhc-status-success .status-icon {
+    color: #16b777;
+}
+
+/* 状态：失败 */
+.rhc-status-fail .layui-colla-title {
+    color: #FF5722; /* Layui 的警告橙 */
+}
+.rhc-status-fail .status-icon {
+    color: #FF5722;
+}
+
+/* 状态：排队中/等待中 */
+.rhc-status-pending .layui-colla-title {
+    color: #FFB800; /* Layui 的暖色黄 */
+}
+.rhc-status-pending .status-icon {
+    color: #FFB800;
+}
+
+/* 图标的通用样式，与标题文字保持一点距离 */
+.status-icon {
+    margin-right: 8px;
+    font-weight: bold; /* 让图标更显眼一些 */
+}

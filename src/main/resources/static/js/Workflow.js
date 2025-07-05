@@ -1,78 +1,233 @@
-$.ajaxSetup({
-    async : false //让ajax同步
-});
+// 创建一个控制器对象来管理所有任务相关的逻辑
+var rhcTaskController = {
+    // 用于存储从 layui.use 传入的模块实例
+    element: null,
+    form: null,
+    dropdown: null,
+    $: null,
+    layer: null,
 
-/**
- * 修改状态 icon
- * @param id
- * @param status
- */
-const changeStatus = (id, status) =>{
-    console.log(id,status);
-    const $item = $('#'+id);
-    $item.removeClass();
-    if (status===Status.SUCCESS){
-        $item.addClass('layui-icon layui-timeline-axis rhc-success');
-    }else if (status===Status.FAIL){
-        $item.addClass('layui-icon layui-timeline-axis rhc-fail');
-    }else if (status===Status.RUNNING){
-        $item.addClass('layui-icon layui-timeline-axis layui-anim layui-anim-rotate layui-anim-loop layui-icon-loading-1');
-    }else {
-        $item.addClass('layui-icon layui-timeline-axis layui-icon-reduce-circle');
-    }
-}
+    /**
+     * 初始化函数，由 FTL 文件中的 layui.use 调用
+     * @param {object} modules - 包含所有 Layui 模块的对象
+     */
+    init: function(modules) {
+        this.element = modules.element;
+        this.form = modules.form;
+        this.dropdown = modules.dropdown;
+        this.$ = modules.jquery;
+        this.layer = modules.layer;
 
-const GetJobStatus = (data) => {
-    $.post({
-        url: '/api/status/get',
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        dataType: 'json',
-        success: function(res) {
-            if (res.data){
-                const processList = res.data.statusInfo;
-                console.log("processList:",processList);
-                let status = true;
-                for (const info of processList) {
-                    console.log(info.status);
-                    console.log(info.status === Status.SUCCESS);
-                    if (info.status === Status.SUCCESS){
-                        console.log("info:",info);
-                        changeStatus(info.process, Status.SUCCESS);
-                    }else if (info.status === Status.RUNNING){
-                        status = false;
-                        changeStatus(info.process, Status.RUNNING);
-                    }else if (info.status === Status.FAIL){
-                        status = false;
-                        changeStatus(info.process, Status.FAIL);
-                    }else if (info.status === Status.INIT){
-                        status = false;
-                        changeStatus(info.process, Status.INIT);
-                    }
-                }
-                if (status){
-                    changeStatus("success", Status.SUCCESS)
-                }else{
-                    setTimeout(()=>{GetJobStatus(data)}, 2500)
-                }
-            }else{
-                setTimeout(()=>{GetJobStatus(data)}, 2500)
+        // 在这里可以执行一些只需要运行一次的初始化绑定
+        this.bindFormSubmit();
+        this.initEnvDropdown();
+    },
+
+    /**
+     * 绑定表单提交事件
+     */
+    bindFormSubmit: function() {
+        // 使用 this.form 来访问模块
+        this.form.on('submit(start)', (data) => {
+            // 使用 this.SingletonStart 来调用对象内部的方法
+            this.SingletonStart(data.field);
+            return false; // 阻止默认 form 跳转
+        });
+    },
+
+    /**
+     * 初始化环境下拉菜单和级联逻辑
+     */
+    initEnvDropdown: function() {
+        // 环境下拉菜单
+        this.dropdown.render({
+            elem: '#env',
+            data: [{ title: 'UAT环境', id: 'uat' }, { title: 'sit环境', id: 'sit' }, { title: '生产环境', id: 'prod' }],
+            click: (obj) => {
+                this.$('#env').val(obj.title);
+                this.$('input[name=env]').val(obj.id);
+                this.$('#work').val('');
+                // 调用对象内部的方法
+                this.getWorkList(obj.id);
+            },
+            style: 'min-width: 235px;'
+        });
+    },
+
+    /**
+     * 获取并渲染应用列表
+     * @param {string} env - 环境ID
+     */
+    getWorkList: function(env) {
+        this.$.ajax('/api/info/get/' + env).then(res => {
+            const data = res.data.map(item => {
+                item.title = item.name;
+                return item;
+            });
+            this.dropdown.render({
+                elem: '#work',
+                data: data,
+                click: (obj) => {
+                    this.$('#work').val(obj.title);
+                },
+                style: 'min-width: 235px;'
+            });
+        });
+    },
+
+    /**
+     * 提交新任务
+     */
+    SingletonStart: function(data) {
+        this.$.post({
+            url: '/api/task/submit',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            dataType: 'json',
+            success: (res) => {
+                this.layer.msg('任务已提交', { icon: 1 });
+                // 提交后立即刷新一次列表，体验更好
+                this.GetTaskInfo();
+            },
+            error: () => {
+                this.layer.msg('任务提交失败', { icon: 2 });
             }
-        },
-        error: function(res) {
-            setTimeout(()=>{GetJobStatus(data)}, 2500)
-        }
-    });
-}
+        });
+    },
 
-const SingletonStart = (data) => {
-    $.post({
-        url: '/api/task/submit',
-        contentType: 'application/json',
-        data: JSON.stringify(data),
-        dataType: 'json',
-        success: (res)=>{
-            setTimeout(()=>{GetJobStatus(data)}, 10000)
+    /**
+     * 获取所有任务信息
+     */
+    GetTaskInfo: function() {
+        this.$.ajax({
+            url: '/api/task/info',
+            type: 'GET',
+            dataType: 'json',
+            success: (res) => {
+                if (res.data && res.data.running_job) {
+                    const runningJobsObject = res.data.running_job;
+                    const tasks = Object.keys(runningJobsObject).map(jobKey => {
+                        const jobData = runningJobsObject[jobKey];
+                        let overallStatus = '已完成';
+                        let status = "success";
+                        if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'fail')) { overallStatus = '失败'; status = "fail"; }
+                        else if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'running')) { overallStatus = '运行中'; status = "running"; }
+                        else if (!jobData.statusInfo.every(s => s.status.toLowerCase() === 'success')) { overallStatus = 'pending'; status = "pending"; }
+
+                        return { taskId: jobKey, env: jobData.env, work: jobData.name, status:status, status_text: overallStatus, steps: jobData.statusInfo };
+                    });
+                    this.renderOrUpdateTasks(tasks);
+                }
+            }
+        });
+    },
+
+    /**
+     * 渲染或更新所有任务的UI (已增强状态显示)
+     * @param {Array} tasks
+     */
+    renderOrUpdateTasks: function(tasks) {
+        const container = this.$('#task-list-container');
+
+        tasks.forEach(task => {
+            const taskDomId = 'task-' + task.taskId;
+            let $taskItem = this.$('#' + taskDomId);
+
+            if ($taskItem.length === 0) {
+                const taskHtml = '<div class="layui-colla-item" id="' + taskDomId + '">' +
+                    '<h2 class="layui-colla-title"></h2>' +
+                    '<div class="layui-colla-content">' + this.createTaskTimelineHtml(task.taskId, task.steps) + '</div>' +
+                    '</div>';
+                container.prepend(taskHtml);
+                $taskItem = this.$('#' + taskDomId); // 创建后重新获取 jQuery 对象
+            }
+
+            // 1. 根据状态获取对应的图标HTML
+            let statusIconHtml = '';
+            switch (task.status) {
+                case 'running':
+                    statusIconHtml = '<i class="layui-icon layui-icon-loading-1 layui-anim layui-anim-rotate layui-anim-loop status-icon"></i>';
+                    break;
+                case 'success':
+                    statusIconHtml = '<i class="layui-icon layui-icon-ok-circle status-icon"></i>';
+                    break;
+                case 'fail':
+                    statusIconHtml = '<i class="layui-icon layui-icon-close-circle status-icon"></i>';
+                    break;
+                case 'PENDING':
+                    statusIconHtml = '<i class="layui-icon layui-icon-auz status-icon"></i>'; // “待授权”图标，形状像时钟
+                    break;
+            }
+
+            // 2. 准备标题文本
+            const titleText = task.env + ' - ' + task.work + ' [' + task.status_text + ']';
+
+            // 3. 移除旧的状态 class，添加新的 class
+            //    这样可以确保颜色总是能正确更新
+            const statusClassName = 'rhc-status-' + task.status.toLowerCase();
+            $taskItem.removeClass('rhc-status-running rhc-status-success rhc-status-fail rhc-status-pending')
+                .addClass(statusClassName);
+
+            // 4. 更新标题的 HTML，包含图标和文本
+            //    注意：这里要用 .html() 而不是 .text()，这样图标才能被渲染
+            $taskItem.find('.layui-colla-title').html(statusIconHtml + titleText);
+
+            // --- 修改结束 ---
+
+            // 更新内部 timeline 的所有图标状态 (这部分逻辑不变)
+            task.steps.forEach(step => {
+                const iconId = 'icon-' + task.taskId + '-' + step.process;
+                this.updateIconStatus(iconId, step.status);
+            });
+        });
+
+        // 渲染手风琴
+        this.element.render('collapse', 'task-accordion');
+    },
+
+    /**
+     * 根据任务数据生成其时间线(timeline)的 HTML
+     * @param {string} taskId
+     * @param {Array} steps
+     */
+    createTaskTimelineHtml: function(taskId, steps) {
+        let timelineHtml = '<div class="layui-timeline" style="padding: 10px 0;">';
+        steps.forEach(step => {
+            const iconId = 'icon-' + taskId + '-' + step.process;
+            timelineHtml += '<div class="layui-timeline-item">' +
+                '<i class="layui-icon layui-timeline-axis layui-icon-reduce-circle" id="' + iconId + '"></i>' +
+                '<div class="layui-timeline-content layui-text">' +
+                '<div class="layui-timeline-title">' + (JobProcessMap[step.process] || step.process) + '</div>' +
+                '</div>' +
+                '</div>';
+        });
+        timelineHtml += '</div>';
+        return timelineHtml;
+    },
+
+    /**
+     * 更新指定图标的状态
+     * @param {string} iconId
+     * @param {string} status
+     */
+    updateIconStatus: function(iconId, status) {
+        const $item = this.$('#' + iconId);
+        if (!$item.length) return;
+        let iconClass = 'layui-icon layui-timeline-axis ';
+        switch (status.toLowerCase()) {
+            case 'success': iconClass += 'rhc-success layui-icon-ok-circle'; break;
+            case 'fail': iconClass += 'rhc-fail layui-icon-close-circle'; break;
+            case 'running': iconClass += 'layui-icon-loading-1 layui-anim layui-anim-rotate layui-anim-loop'; break;
+            default: iconClass += 'layui-icon-reduce-circle'; break;
         }
-    });
-}
+        $item.attr('class', iconClass);
+    },
+
+    /**
+     * 定时轮询任务状态
+     */
+    pollTasksStatus: function() {
+        this.GetTaskInfo();
+        setTimeout(() => this.pollTasksStatus(), 2500);
+    }
+};
