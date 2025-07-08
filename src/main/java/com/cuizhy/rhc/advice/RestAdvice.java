@@ -55,7 +55,7 @@ public class RestAdvice implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(Exception.class)
     public RestVo<?> handleException(Exception e) {
         log.error("handle exception", e);
-        return RestVo.newErrorInstance();
+        return RestVo.newErrorInstance(e.getMessage());
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

@@ -28,6 +28,9 @@ public class TaskRestController {
 
     @RequestMapping("submit")
     public void submitTask(@RequestBody TaskSubmitPVO taskSubmitPVO) {
+        if (!statusManager.checkCanReRun(taskSubmitPVO)){
+            throw new RuntimeException("任务正在运行中，请勿重复提交！");
+        }
         taskQueueManager.submitTask(() -> {
             try {
                 workflowService.start(taskSubmitPVO);

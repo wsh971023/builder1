@@ -66,6 +66,11 @@ public class Info {
     private String frontDirName;
 
     /**
+     * 状态
+     */
+    private String state;
+
+    /**
      * 状态信息
      */
     List<Status> statusInfo = new ArrayList<>();
