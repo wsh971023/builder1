@@ -5,13 +5,13 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${title}</title>
-        <link rel="stylesheet" href="/lib/layui/css/layui.css">
-        <link rel="stylesheet" href="/css/global.css">
-        <link rel="stylesheet" href="/css/index.css">
-        <script src="/lib/jquery/jquery.js"></script>
-        <script src="/lib/layui/layui.js"></script>
-        <script src="/js/Constants.js"></script>
-        <script src="/js/Workflow.js"></script>
+        <link rel="stylesheet" href="/lib/layui/css/layui.css?ts=${.now?long?c}">
+        <link rel="stylesheet" href="/css/global.css?ts=${.now?long?c}">
+        <link rel="stylesheet" href="/css/index.css?ts=${.now?long?c}">
+        <script src="/lib/jquery/jquery.js?ts=${.now?long?c}"></script>
+        <script src="/lib/layui/layui.js?ts=${.now?long?c}"></script>
+        <script src="/js/Constants.js?ts=${.now?long?c}"></script>
+        <script src="/js/Workflow.js?ts=${.now?long?c}"></script>
     </head>
     <body>
     <div class="layui-layout layui-layout-admin">

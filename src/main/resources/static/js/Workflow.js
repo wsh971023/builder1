@@ -8,6 +8,54 @@ var rhcTaskController = {
     layer: null,
 
     /**
+     * 通用Ajax请求封装
+     * @param {Object} options 请求参数
+     */
+    request: function (options) {
+        const defaultOptions = {
+            method: 'POST',
+            url: '',
+            data: {},
+            contentType: 'application/json',
+            dataType: 'json',
+            showMsg: true, // 是否自动弹出提示
+            beforeSend: null,
+            complete: null
+        };
+
+        const opt = Object.assign({}, defaultOptions, options);
+
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                method: opt.method,
+                url: opt.url,
+                data: opt.contentType === 'application/json' ? JSON.stringify(opt.data) : opt.data,
+                contentType: opt.contentType,
+                dataType: opt.dataType,
+                beforeSend: opt.beforeSend,
+                success: function (res) {
+                    if (res.code === 200) {
+                        resolve(res.data); // 返回数据部分
+                    } else {
+                        if (opt.showMsg && window.layer) {
+                            layer.msg(res.message || '操作失败', { icon: 2 });
+                        }
+                        reject({ code: res.code, message: res.message || '接口返回错误' });
+                    }
+                },
+                error: function (xhr) {
+                    if (opt.showMsg && window.layer) {
+                        layer.msg('网络或服务器错误', { icon: 2 });
+                    }
+                    reject({ code: xhr.status, message: xhr.statusText || '网络异常' });
+                },
+                complete: opt.complete
+            });
+        });
+    },
+
+
+    /**
      * 初始化函数，由 FTL 文件中的 layui.use 调用
      * @param {object} modules - 包含所有 Layui 模块的对象
      */
@@ -42,7 +90,7 @@ var rhcTaskController = {
         // 环境下拉菜单
         this.dropdown.render({
             elem: '#env',
-            data: [{ title: 'UAT环境', id: 'uat' }, { title: 'sit环境', id: 'sit' }, { title: '生产环境', id: 'prod' }],
+            data: [{ title: 'UAT环境', id: 'uat' }, { title: 'SIT环境', id: 'sit' }, { title: '生产环境', id: 'prod' }],
             click: (obj) => {
                 this.$('#env').val(obj.title);
                 this.$('input[name=env]').val(obj.id);
@@ -59,8 +107,11 @@ var rhcTaskController = {
      * @param {string} env - 环境ID
      */
     getWorkList: function(env) {
-        this.$.ajax('/api/info/get/' + env).then(res => {
-            const data = res.data.map(item => {
+
+        this.request({
+            url: '/api/info/get/' + env,
+        }).then(res => {
+            const data = res.map(item => {
                 item.title = item.name;
                 return item;
             });
@@ -72,54 +123,46 @@ var rhcTaskController = {
                 },
                 style: 'min-width: 235px;'
             });
-        });
+        })
     },
 
     /**
      * 提交新任务
      */
     SingletonStart: function(data) {
-        this.$.post({
+
+        this.request( {
             url: '/api/task/submit',
-            contentType: 'application/json',
-            data: JSON.stringify(data),
-            dataType: 'json',
-            success: (res) => {
-                this.layer.msg('任务已提交', { icon: 1 });
-                // 提交后立即刷新一次列表，体验更好
-                this.GetTaskInfo();
-            },
-            error: () => {
-                this.layer.msg('任务提交失败', { icon: 2 });
-            }
-        });
+            data: data,
+        }).then( res => {
+            this.layer.msg('任务已提交', { icon: 1 });
+            // 提交后立即刷新一次列表，体验更好
+            this.GetTaskInfo();
+        })
     },
 
     /**
      * 获取所有任务信息
      */
     GetTaskInfo: function() {
-        this.$.ajax({
+        this.request({
             url: '/api/task/info',
-            type: 'GET',
-            dataType: 'json',
-            success: (res) => {
-                if (res.data && res.data.running_job) {
-                    const runningJobsObject = res.data.running_job;
-                    const tasks = Object.keys(runningJobsObject).map(jobKey => {
-                        const jobData = runningJobsObject[jobKey];
-                        let overallStatus = '已完成';
-                        let status = "success";
-                        if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'fail')) { overallStatus = '失败'; status = "fail"; }
-                        else if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'running')) { overallStatus = '运行中'; status = "running"; }
-                        else if (!jobData.statusInfo.every(s => s.status.toLowerCase() === 'success')) { overallStatus = 'pending'; status = "pending"; }
+        }).then( res => {
+            if (res && res.running_job) {
+                const runningJobsObject = res.running_job;
+                const tasks = Object.keys(runningJobsObject).map(jobKey => {
+                    const jobData = runningJobsObject[jobKey];
+                    let overallStatus = '已完成';
+                    let status = "success";
+                    if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'fail')) { overallStatus = '失败'; status = "fail"; }
+                    else if (jobData.statusInfo.some(s => s.status.toLowerCase() === 'running')) { overallStatus = '运行中'; status = "running"; }
+                    else if (!jobData.statusInfo.every(s => s.status.toLowerCase() === 'success')) { overallStatus = 'pending'; status = "pending"; }
 
-                        return { taskId: jobKey, env: jobData.env, work: jobData.name, status:status, status_text: overallStatus, steps: jobData.statusInfo };
-                    });
-                    this.renderOrUpdateTasks(tasks);
-                }
+                    return { taskId: jobKey, env: jobData.env, work: jobData.name, status:status, status_text: overallStatus, steps: jobData.statusInfo };
+                });
+                this.renderOrUpdateTasks(tasks);
             }
-        });
+        })
     },
 
     /**
