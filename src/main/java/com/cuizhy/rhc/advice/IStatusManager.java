@@ -5,7 +5,7 @@ import com.cuizhy.rhc.model.Info;
 /**
  * 状态更新器
  */
-public interface IStatusUpdater {
+public interface IStatusManager {
 
     /**
      * 更新状态

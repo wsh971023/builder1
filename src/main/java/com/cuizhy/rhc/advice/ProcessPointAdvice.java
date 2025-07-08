@@ -20,7 +20,7 @@ import java.util.Optional;
 public class ProcessPointAdvice {
 
     @Autowired
-    private IStatusUpdater statusUpdater;
+    private IStatusManager statusManager;
 
     @Around("@annotation(processPoint)")
     public Object trackLifecycle(ProceedingJoinPoint joinPoint, ProcessPoint processPoint) throws Throwable {
@@ -37,33 +37,33 @@ public class ProcessPointAdvice {
 
         switch (processPoint.phase()) {
             case START:
-                statusUpdater.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
+                statusManager.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
                 try {
                     return joinPoint.proceed();
                 }catch (Throwable e) {
-                    statusUpdater.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
                 }
 
 
             case END:
                 try {
                     Object result = joinPoint.proceed();
-                    statusUpdater.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
                     return result;
                 } catch (Throwable e) {
-                    statusUpdater.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
                     throw e;
                 }
 
             case WRAP:
             default:
-                statusUpdater.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
+                statusManager.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
                 try {
                     Object result = joinPoint.proceed();
-                    statusUpdater.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
                     return result;
                 } catch (Throwable e) {
-                    statusUpdater.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
                     throw e;
                 }
         }

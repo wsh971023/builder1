@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @Profile("default") // 使用Profile方便未来切换
-public class LocalCacheStatusUpdater implements IStatusUpdater {
+public class LocalCacheStatusManager implements IStatusManager {
 
     @Autowired
     private CacheUtil cacheUtil;
