@@ -58,11 +58,11 @@ public class WorkService {
         String url = configDao.getValue("url", "jenkins");
         Info info = cacheUtil.getInfoFromJobList(env,work);
         boolean need_build = "on".equalsIgnoreCase(build);
-        boolean isBuilding = this.jenkinsCheckBuilding(taskSubmitPVO);
-        if (need_build && !isBuilding){
+        boolean build_status = this.jenkinsCheckBuilding(taskSubmitPVO);
+        if (need_build && build_status){
             jenkinsUtil.triggerBuild(url, info.getJobName());
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_RUNNING);
-        }else if (isBuilding){
+        }else if (!build_status){
             info.setStatus(Constants.JOB_PROGRESS_JENKINS_BUILD,Constants.JOB_STATUS_RUNNING);
         }
         cacheUtil.addInfoToJobList(info);

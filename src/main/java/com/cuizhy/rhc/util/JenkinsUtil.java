@@ -134,7 +134,7 @@ public class JenkinsUtil {
     public void triggerBuild(String url, String job_name){
         log.info("正在触发构建任务...");
         try {
-            String buildUrl = BUILD_PATH.replace("{job_name}", job_name);
+            String buildUrl = jenkins_local_base_url + BUILD_PATH.replace("{job_name}", job_name);
 
             HttpRequest buildRequest = requestManager.createRequestBuilder(buildUrl)
                     .POST(HttpRequest.BodyPublishers.noBody())

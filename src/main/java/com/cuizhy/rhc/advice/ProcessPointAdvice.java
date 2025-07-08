@@ -38,7 +38,12 @@ public class ProcessPointAdvice {
         switch (processPoint.phase()) {
             case START:
                 statusUpdater.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
-                return joinPoint.proceed();
+                try {
+                    return joinPoint.proceed();
+                }catch (Throwable e) {
+                    statusUpdater.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                }
+
 
             case END:
                 try {
