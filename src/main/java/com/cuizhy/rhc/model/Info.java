@@ -85,7 +85,7 @@ public class Info {
         statusInfo.add(git_commit_and_push);
     }
 
-    public void setStatus(String process, String status) {
+    public void setStatus(String process, String status, Throwable error) {
         if (statusInfo == null) {
             log.warn("statusInfo 列表为空，无法设置状态");
             return;
@@ -97,6 +97,7 @@ public class Info {
 
         if (optionalStatus.isPresent()) {
             optionalStatus.get().setStatus(status);
+            optionalStatus.get().setError(error);
         } else {
             log.warn("未找到 process 为 {} 的 Status 对象", process);
         }

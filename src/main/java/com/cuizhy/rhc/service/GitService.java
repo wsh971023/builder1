@@ -1,25 +1,16 @@
 package com.cuizhy.rhc.service;
 
-import com.cuizhy.rhc.constants.Constants;
 import com.cuizhy.rhc.dao.ConfigDao;
 import com.cuizhy.rhc.model.Info;
-import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.util.FileUtil;
 import com.cuizhy.rhc.util.GitUtil;
 import com.cuizhy.rhc.util.JenkinsUtil;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jgit.api.CloneCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.TextProgressMonitor;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +24,6 @@ public class GitService {
 
     @Autowired
     private ConfigDao configDao;
-
-    @Autowired
-    private CacheUtil cacheUtil;
 
     @Autowired
     private JenkinsUtil jenkinsUtil;
@@ -73,75 +61,57 @@ public class GitService {
         GitUtil.gitCommit(remote_repo_url,commitMessage);
     }
 
+    @SneakyThrows
     public void gitCommitAndPush(Info info){
-        try{
-            info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_RUNNING);
-            cacheUtil.addInfoToJobList(info);
-            this.gitCommit(info.getRepoUrl());
-            GitUtil.gitPush(info.getRepoUrl(),getUserName(),getGenerateToken());
-            info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_SUCCESS);
-            cacheUtil.addInfoToJobList(info);
-        }catch (Exception e){
-            info.setStatus(Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
-            throw new RuntimeException("git commit and push 失败",e);
-        }
+        this.gitCommit(info.getRepoUrl());
+        GitUtil.gitPush(info.getRepoUrl(),getUserName(),getGenerateToken());
     }
 
+    @SneakyThrows
     public void copyFile(Info info){
-        try{
-            info.setStatus(Constants.JOB_PROGRESS_COPY_FILE,Constants.JOB_STATUS_RUNNING);
-            cacheUtil.addInfoToJobList(info);
-            String cloneDir = GitUtil.getCloneDir(info.getRepoUrl());
-            String downloadFilePath = jenkinsUtil.getDownloadPath(info.getFilepath());
+        String cloneDir = GitUtil.getCloneDir(info.getRepoUrl());
+        String downloadFilePath = jenkinsUtil.getDownloadPath(info.getFilepath());
 
-            Path sourceFile = Paths.get(downloadFilePath);
-            Path targetDir = Paths.get(cloneDir);
-            Path targetFile = targetDir.resolve(sourceFile.getFileName());
+        Path sourceFile = Paths.get(downloadFilePath);
+        Path targetDir = Paths.get(cloneDir);
+        Path targetFile = targetDir.resolve(sourceFile.getFileName());
 
-            Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
 
-            if (info.getIsFront() == 1){
-                //需要解压dist.zip ,删除cloneDir里边的文件夹，拷贝dist.zip文件夹到cloneDir 然后删除dist.zip
-                String zipFilePath = Paths.get(cloneDir, "dist.zip").toString();
+        if (info.getIsFront() == 1) {
+            //需要解压dist.zip ,删除cloneDir里边的文件夹，拷贝dist.zip文件夹到cloneDir 然后删除dist.zip
+            String zipFilePath = Paths.get(cloneDir, "dist.zip").toString();
 
-                // 删除目标目录中的指定文件夹
-                FileUtil.deleteDir(Paths.get(cloneDir, info.getFrontDirName()).toString());
+            // 删除目标目录中的指定文件夹
+            FileUtil.deleteDir(Paths.get(cloneDir, info.getFrontDirName()).toString());
 
-                // 解压 dist.zip 文件
-                if (zipFilePath.endsWith(".zip")) {
-                    try {
-                        FileUtil.unzipFile(zipFilePath, cloneDir);
-                        log.info("已解压文件: {} 到 {}", zipFilePath, cloneDir);
+            // 解压 dist.zip 文件
+            if (zipFilePath.endsWith(".zip")) {
+                try {
+                    FileUtil.unzipFile(zipFilePath, cloneDir);
+                    log.info("已解压文件: {} 到 {}", zipFilePath, cloneDir);
 
-                        // 重命名解压后的文件夹
-                        String dirName = info.getFrontDirName();
-                        Path extractedDir = Paths.get(cloneDir, "dist");
-                        if (Files.exists(extractedDir)) {
-                            Path newDirPath = Paths.get(cloneDir, dirName);
-                            Files.move(extractedDir, newDirPath, StandardCopyOption.REPLACE_EXISTING);
-                            log.info("已将解压的文件夹重命名为: {}", newDirPath);
-                        } else {
-                            log.info("解压后找不到 dist 文件夹");
-                        }
-
-                        // 删除 dist.zip 文件
-                        Files.deleteIfExists(Paths.get(zipFilePath));
-                        log.info("已删除源文件: {}", zipFilePath);
-
-                    } catch (IOException e) {
-                        throw new RuntimeException("处理文件失败: " + zipFilePath, e);
+                    // 重命名解压后的文件夹
+                    String dirName = info.getFrontDirName();
+                    Path extractedDir = Paths.get(cloneDir, "dist");
+                    if (Files.exists(extractedDir)) {
+                        Path newDirPath = Paths.get(cloneDir, dirName);
+                        Files.move(extractedDir, newDirPath, StandardCopyOption.REPLACE_EXISTING);
+                        log.info("已将解压的文件夹重命名为: {}", newDirPath);
+                    } else {
+                        log.info("解压后找不到 dist 文件夹");
                     }
+
+                    // 删除 dist.zip 文件
+                    Files.deleteIfExists(Paths.get(zipFilePath));
+                    log.info("已删除源文件: {}", zipFilePath);
+
+                } catch (IOException e) {
+                    throw new RuntimeException("处理文件失败: " + zipFilePath, e);
                 }
             }
-            info.setStatus(Constants.JOB_PROGRESS_COPY_FILE,Constants.JOB_STATUS_SUCCESS);
-            cacheUtil.addInfoToJobList(info);
-            log.info("文件成功拷贝到: {}", targetFile);
-        }catch (Exception e){
-            info.setStatus(Constants.JOB_PROGRESS_COPY_FILE,Constants.JOB_STATUS_FAIL);
-            cacheUtil.addInfoToJobList(info);
-            throw new RuntimeException("文件拷贝失败",e);
         }
+        log.info("文件成功拷贝到: {}", targetFile);
     }
 
 }

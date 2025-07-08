@@ -15,6 +15,11 @@ public class Status {
      */
     private String status;
 
+    /**
+     * 错误信息
+     */
+    private Throwable error;
+
     public Status(String process, String status) {
         this.process = process;
         this.status = status;
