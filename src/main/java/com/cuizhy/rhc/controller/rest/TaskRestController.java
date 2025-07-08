@@ -1,5 +1,6 @@
 package com.cuizhy.rhc.controller.rest;
 
+import com.cuizhy.rhc.advice.IStatusUpdater;
 import com.cuizhy.rhc.cache.CacheUtil;
 import com.cuizhy.rhc.global.TaskQueueManager;
 import com.cuizhy.rhc.service.WorkflowService;
@@ -23,7 +24,7 @@ public class TaskRestController {
     private WorkflowService workflowService;
 
     @Autowired
-    private CacheUtil cacheUtil;
+    private IStatusUpdater statusUpdater;
 
     @RequestMapping("submit")
     public void submitTask(@RequestBody TaskSubmitPVO taskSubmitPVO) {
@@ -38,6 +39,6 @@ public class TaskRestController {
 
     @RequestMapping("info")
     public Object info() {
-        return cacheUtil.getDb0();
+        return statusUpdater.getStatusInfo();
     }
 }

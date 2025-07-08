@@ -17,10 +17,15 @@ public class LocalCacheStatusUpdater implements IStatusUpdater {
 
     @Override
     public void update(Info info, String progress, String status, Throwable error) {
-        info.setStatus(progress, status);
+        info.setStatus(progress, status, error);
         cacheUtil.addInfoToJobList(info);
         if (error != null) {
             log.error("任务进度 [{}] 失败", progress, error);
         }
+    }
+
+    @Override
+    public Object getStatusInfo() {
+        return cacheUtil.getDb0();
     }
 }
