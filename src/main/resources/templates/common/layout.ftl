@@ -28,6 +28,13 @@
                     </dl>
                 </li>
             </ul>
+            <ul class="layui-nav layui-layout-right">
+                <li class="layui-nav-item">
+                    <a href="https://github.com/suninx/rhc-builder" target="_blank" title="GitHub">
+                        <i class="layui-icon layui-icon-github" style="font-size: 18px;"></i>
+                    </a>
+                </li>
+            </ul>
         </div>
         <div class="layui-body layui-layout-body">
             <#nested/>
