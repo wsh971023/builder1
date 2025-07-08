@@ -34,6 +34,9 @@ public class ProcessPointAdvice {
 
         Info info = pvoOptional.get().getInfoConfig();
         String progress = processPoint.progress();
+        if (Constants.JOB_STATUS_FAIL.equals(info.getState())){
+            return null;
+        }
 
         switch (processPoint.phase()) {
             case START:
@@ -42,6 +45,8 @@ public class ProcessPointAdvice {
                     return joinPoint.proceed();
                 }catch (Throwable e) {
                     statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.failFast(info);
+                    throw e;
                 }
 
 
@@ -52,6 +57,7 @@ public class ProcessPointAdvice {
                     return result;
                 } catch (Throwable e) {
                     statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.failFast(info);
                     throw e;
                 }
 
@@ -64,6 +70,7 @@ public class ProcessPointAdvice {
                     return result;
                 } catch (Throwable e) {
                     statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.failFast(info);
                     throw e;
                 }
         }
