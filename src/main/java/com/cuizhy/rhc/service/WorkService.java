@@ -133,7 +133,7 @@ public class WorkService {
         gitService.copyFile(info);
     }
 
-    @ProcessPoint(progress = Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH)
+    @ProcessPoint(progress = Constants.JOB_PROGRESS_GIT_COMMIT_AND_PUSH, phase = TaskPhase.FINISH)
     public void gitCommitAndPush(TaskSubmitPVO taskSubmitPVO){
         String env = taskSubmitPVO.getEnv();
         String work = taskSubmitPVO.getWork();

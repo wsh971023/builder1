@@ -18,7 +18,7 @@ public class Status {
     /**
      * 错误信息
      */
-    private Throwable error;
+    private String error;
 
     public Status(String process, String status) {
         this.process = process;

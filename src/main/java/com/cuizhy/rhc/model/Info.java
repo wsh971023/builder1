@@ -90,7 +90,7 @@ public class Info {
         statusInfo.add(git_commit_and_push);
     }
 
-    public void setStatus(String process, String status, Throwable error) {
+    public void setStatus(String process, String status, String error) {
         if (statusInfo == null) {
             log.warn("statusInfo 列表为空，无法设置状态");
             return;

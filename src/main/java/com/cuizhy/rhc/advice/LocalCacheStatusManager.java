@@ -18,7 +18,7 @@ public class LocalCacheStatusManager implements IStatusManager {
     private CacheUtil cacheUtil;
 
     @Override
-    public void update(Info info, String progress, String status, Throwable error) {
+    public void update(Info info, String progress, String status, String error) {
         info.setStatus(progress, status, error);
         cacheUtil.addInfoToJobList(info);
         if (error != null) {
@@ -40,6 +40,6 @@ public class LocalCacheStatusManager implements IStatusManager {
     @Override
     public boolean checkCanReRun(TaskSubmitPVO taskSubmitPVO) {
         Info cache = cacheUtil.getInfoFromJobList(taskSubmitPVO.getEnv(), taskSubmitPVO.getWork());
-        return cache == null || Constants.JOB_STATUS_FAIL.equals(cache.getState());
+        return cache == null || Constants.JOB_STATUS_SUCCESS.equals(cache.getState()) || Constants.JOB_STATUS_FAIL.equals(cache.getState());
     }
 }

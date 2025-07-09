@@ -15,7 +15,7 @@ public interface IStatusManager {
      * @param status 状态
      * @param error 错误
      */
-    void update(Info info, String progress, String status, Throwable error);
+    void update(Info info, String progress, String status, String error);
 
     /**
      * 获取状态信息

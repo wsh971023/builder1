@@ -3,6 +3,7 @@ package com.cuizhy.rhc.advice;
 import com.cuizhy.rhc.annotation.ProcessPoint;
 import com.cuizhy.rhc.constants.Constants;
 import com.cuizhy.rhc.model.Info;
+import com.cuizhy.rhc.util.ExceptionUtil;
 import com.cuizhy.rhc.vo.TaskSubmitPVO;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -40,11 +41,12 @@ public class ProcessPointAdvice {
 
         switch (processPoint.phase()) {
             case START:
+                info.setState(Constants.JOB_STATUS_RUNNING);
                 statusManager.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
                 try {
                     return joinPoint.proceed();
                 }catch (Throwable e) {
-                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, ExceptionUtil.getStackTrace(e));
                     statusManager.failFast(info);
                     throw e;
                 }
@@ -56,20 +58,33 @@ public class ProcessPointAdvice {
                     statusManager.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
                     return result;
                 } catch (Throwable e) {
-                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, ExceptionUtil.getStackTrace(e));
+                    statusManager.failFast(info);
+                    throw e;
+                }
+
+            case FINISH:
+                try {
+                    Object result = joinPoint.proceed();
+                    info.setState(Constants.JOB_STATUS_SUCCESS);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
+                    return result;
+                } catch (Throwable e) {
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, ExceptionUtil.getStackTrace(e));
                     statusManager.failFast(info);
                     throw e;
                 }
 
             case WRAP:
             default:
+                info.setState(Constants.JOB_STATUS_RUNNING);
                 statusManager.update(info, progress, Constants.JOB_STATUS_RUNNING, null);
                 try {
                     Object result = joinPoint.proceed();
                     statusManager.update(info, progress, Constants.JOB_STATUS_SUCCESS, null);
                     return result;
                 } catch (Throwable e) {
-                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, e);
+                    statusManager.update(info, progress, Constants.JOB_STATUS_FAIL, ExceptionUtil.getStackTrace(e));
                     statusManager.failFast(info);
                     throw e;
                 }
