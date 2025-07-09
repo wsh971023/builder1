@@ -327,12 +327,23 @@ var rhcTaskController = {
                 type: 1,
                 title: '堆栈信息',
                 area: ['600px', '400px'],
+                btn: ['下载日志'],
                 shade: 0.3,
                 maxmin: true,
                 content: `<pre style="padding:15px;overflow:auto;white-space: pre-wrap;word-break: break-word;">${html}</pre>`,
-                yes: function(index, layero){
-                    that.layer.close(index);
-                }
+                yes: function(index, layero){ // 第一个按钮：下载
+                    const rawText = stacktrace; // 原始未高亮的字符串
+                    const blob = new Blob([rawText], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'rhc-builder-stacktrace.log';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                },
             });
         });
     },
