@@ -183,6 +183,25 @@ var rhcTaskController = {
                     '</div>';
                 container.prepend(taskHtml);
                 $taskItem = this.$('#' + taskDomId); // 创建后重新获取 jQuery 对象
+            }else {
+                // 已存在，仅更新步骤状态和堆栈信息
+                task.steps.forEach(step => {
+                    const iconId = 'icon-' + task.taskId + '-' + step.process;
+                    const $icon = this.$('#' + iconId);
+                    const newClass = this.getIconClassForStatus(step.status);
+                    const trace = step.message || step.error;
+
+                    if ($icon.length) {
+                        if (!$icon.hasClass(newClass)) {
+                            $icon.attr('class', newClass);
+                        }
+                        if (trace) {
+                            $icon.attr('data-stacktrace', trace);
+                        } else {
+                            $icon.removeAttr('data-stacktrace');
+                        }
+                    }
+                });
             }
 
             // 1. 根据状态获取对应的图标HTML
@@ -226,6 +245,22 @@ var rhcTaskController = {
 
         // 渲染手风琴
         this.element.render('collapse', 'task-accordion');
+/*        // 给所有带有 data-stacktrace 的图标绑定悬浮事件
+        this.$('[data-stacktrace]').each((_, el) => {
+            const $el = this.$(el);
+            $el.off('mouseenter.tooltip').on('mouseenter.tooltip', () => {
+                const trace = $el.attr('data-stacktrace');
+                this.layer.tips(
+                    `<pre style="max-width:500px;max-height:300px;overflow:auto;white-space:pre-wrap;">${trace}</pre>`,
+                    el,
+                    { tips: [1, '#c00'], time: 0, area: 'auto', maxWidth: 600 }
+                );
+            });
+            $el.off('mouseleave.tooltip').on('mouseleave.tooltip', () => {
+                this.layer.closeAll('tips');
+            });
+        });*/
+        this.bindStacktraceClick();
     },
 
     /**
@@ -237,12 +272,18 @@ var rhcTaskController = {
         let timelineHtml = '<div class="layui-timeline" style="padding: 10px 0;">';
         steps.forEach(step => {
             const iconId = 'icon-' + taskId + '-' + step.process;
+            let tooltipAttr = '';
+            if (step.status.toLowerCase() === 'fail' && step.error) {
+                tooltipAttr = `data-stacktrace="${step.error.replace(/"/g, '&quot;')}"`;
+            }
+
             timelineHtml += '<div class="layui-timeline-item">' +
-                '<i class="layui-icon layui-timeline-axis layui-icon-reduce-circle" id="' + iconId + '"></i>' +
+                `<i class="layui-icon layui-timeline-axis layui-icon-reduce-circle" id="${iconId}" ${tooltipAttr}></i>` +
                 '<div class="layui-timeline-content layui-text">' +
                 '<div class="layui-timeline-title">' + (JobProcessMap[step.process] || step.process) + '</div>' +
                 '</div>' +
                 '</div>';
+
         });
         timelineHtml += '</div>';
         return timelineHtml;
@@ -272,5 +313,43 @@ var rhcTaskController = {
     pollTasksStatus: function() {
         this.GetTaskInfo();
         setTimeout(() => this.pollTasksStatus(), 2500);
+    },
+    /**
+     * 获取任务详情
+     */
+    getIconClassForStatus: function(status) {
+        switch ((status || '').toLowerCase()) {
+            case 'success': return 'layui-icon layui-timeline-axis rhc-success layui-icon-ok-circle';
+            case 'fail': return 'layui-icon layui-timeline-axis rhc-fail layui-icon-close-circle';
+            case 'running': return 'layui-icon layui-timeline-axis layui-icon-loading-1 layui-anim layui-anim-rotate layui-anim-loop';
+            default: return 'layui-icon layui-timeline-axis layui-icon-reduce-circle';
+        }
+    },
+    bindStacktraceClick: function() {
+        const that = this;
+        // 先解绑，避免重复绑定
+        that.$('#task-list-container').off('click', '.layui-timeline-axis');
+
+        // 绑定点击事件
+        that.$('#task-list-container').on('click', '.layui-timeline-axis', function() {
+            const stacktrace = that.$(this).attr('data-stacktrace');
+            if (!stacktrace) {
+                that.layer.msg('无详细信息', {icon: 0});
+                return;
+            }
+
+            that.layer.open({
+                type: 1,
+                title: '堆栈信息',
+                area: ['600px', '400px'],
+                shade: 0.3,
+                maxmin: true,
+                content: `<pre style="padding:15px;overflow:auto;white-space: pre-wrap;word-break: break-word;">${stacktrace}</pre>`,
+                btn: ['关闭'],
+                yes: function(index, layero){
+                    that.layer.close(index);
+                }
+            });
+        });
     }
 };
