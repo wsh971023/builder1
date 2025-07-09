@@ -4,3 +4,10 @@
 .layui-layout-admin .layui-footer{
     left: 0;
 }
+pre {
+    overflow-y: auto;
+    background: #2c3e50;
+    color: #ecf0f1;
+    padding: 10px;
+    border-radius: 4px;
+}

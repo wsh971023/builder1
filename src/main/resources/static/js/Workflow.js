@@ -245,21 +245,6 @@ var rhcTaskController = {
 
         // 渲染手风琴
         this.element.render('collapse', 'task-accordion');
-/*        // 给所有带有 data-stacktrace 的图标绑定悬浮事件
-        this.$('[data-stacktrace]').each((_, el) => {
-            const $el = this.$(el);
-            $el.off('mouseenter.tooltip').on('mouseenter.tooltip', () => {
-                const trace = $el.attr('data-stacktrace');
-                this.layer.tips(
-                    `<pre style="max-width:500px;max-height:300px;overflow:auto;white-space:pre-wrap;">${trace}</pre>`,
-                    el,
-                    { tips: [1, '#c00'], time: 0, area: 'auto', maxWidth: 600 }
-                );
-            });
-            $el.off('mouseleave.tooltip').on('mouseleave.tooltip', () => {
-                this.layer.closeAll('tips');
-            });
-        });*/
         this.bindStacktraceClick();
     },
 
@@ -337,19 +322,24 @@ var rhcTaskController = {
                 that.layer.msg('无详细信息', {icon: 0});
                 return;
             }
-
+            const html = that.highlightStackTrace(stacktrace);
             that.layer.open({
                 type: 1,
                 title: '堆栈信息',
                 area: ['600px', '400px'],
                 shade: 0.3,
                 maxmin: true,
-                content: `<pre style="padding:15px;overflow:auto;white-space: pre-wrap;word-break: break-word;">${stacktrace}</pre>`,
-                btn: ['关闭'],
+                content: `<pre style="padding:15px;overflow:auto;white-space: pre-wrap;word-break: break-word;">${html}</pre>`,
                 yes: function(index, layero){
                     that.layer.close(index);
                 }
             });
         });
+    },
+    highlightStackTrace: function (text) {
+        return text
+            .replace(/(Error|Caused by|com.cuizhy)/g, '<span style="color:#e74c3c;font-weight:bold;">$1</span>')
+            .replace(/(\sat\s)/g, '<span style="color:#3498db;">$1</span>')
+            .replace(/([a-zA-Z0-9_.]+\.java:\d+)/g, '<span style="color:#27ae60;">$1</span>');
     }
 };
