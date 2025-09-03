@@ -109,6 +109,14 @@ public class GitUtil {
         return Paths.get(FileUtil.getRuntimeAbsolutePath(), Constants.GIT_CLONE_DIR, repoName).toString();
     }
 
+    /**
+     * 使用孤儿分支强制清理及推送当前分支进行覆盖
+     * @param remote_repo_url
+     * @param username
+     * @param password
+     * @throws IOException
+     * @throws GitAPIException
+     */
     public static void forceCleanAndPush(String remote_repo_url,String username,String password) throws IOException, GitAPIException {
         String local_repo_dir = getCloneDir(remote_repo_url);
         try (Git git = Git.open(new File(local_repo_dir))) {
@@ -116,23 +124,23 @@ public class GitUtil {
             //自动检测当前分支名称
             String targetBranchName = repository.getBranch();
 
-            Iterable<RevCommit> log = git.log().setMaxCount(1).call();
-            RevCommit latestCommit = log.iterator().next();
+            Iterable<RevCommit> logInfo = git.log().setMaxCount(1).call();
+            RevCommit latestCommit = logInfo.iterator().next();
             //获取最近一次提交信息
             String originalCommitMessage = latestCommit.getFullMessage();
 
             String tempBranchName = "new-history-" + System.currentTimeMillis();
-            System.out.println("\n--- 步骤 2/5: 正在创建新的孤儿分支 '" + tempBranchName + "'... ---");
+            log.info("--- 步骤 2/5: 正在创建新的孤儿分支 '{}'... ---", tempBranchName);
             git.checkout().setOrphan(true).setName(tempBranchName).call();
 
             // 步骤 3: 将 depth 1 的内容提交到新分支
-            System.out.println("--- 步骤 3/5: 正在将最新文件作为初始提交... ---");
+            log.info("--- 步骤 3/5: 正在将最新文件作为初始提交... ---");
             git.add().addFilepattern(".").call();
             git.commit().setMessage(originalCommitMessage).call();
-            System.out.println("新历史的初始提交已创建。");
+            log.info("新历史的初始提交已创建。");
 
             // 步骤 4 & 5: 将新历史强制应用到目标分支，并清理临时分支
-            System.out.println("--- 步骤 4/5: 正在将新历史强制更新到 '" + targetBranchName + "'... ---");
+            log.info("--- 步骤 4/5: 正在将新历史强制更新到 '{}'... ---", targetBranchName);
             // 使用 branchCreate() 和 setForce(true) 来模拟 'git branch -M'。
             // 这会强制将 targetBranchName 分支的指针移动到我们当前所在的新历史的 HEAD
             git.branchCreate()
@@ -145,11 +153,12 @@ public class GitUtil {
 
             // 删除不再需要的临时分支
             git.branchDelete().setBranchNames(tempBranchName).call();
-            System.out.println("分支 '" + targetBranchName + "' 已成功指向新历史。");
+            log.info("分支 '{}' 已成功指向新历史。", targetBranchName);
 
             // 步骤 6: 强制推送
-            System.out.println("--- 步骤 5/5: 正在强制推送到远程仓库... ---");
+            log.info("--- 步骤 5/5: 正在强制推送到远程仓库... ---");
             git.push().setForce(true).add(targetBranchName).setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password)).call();
+            log.info("--- 推送成功 ---");
         }
     }
 }
