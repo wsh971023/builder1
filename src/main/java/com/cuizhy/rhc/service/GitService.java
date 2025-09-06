@@ -64,7 +64,7 @@ public class GitService {
     @SneakyThrows
     public void gitCommitAndPush(Info info){
         this.gitCommit(info.getRepoUrl());
-        GitUtil.forceCleanAndPush(info.getRepoUrl(),getUserName(),getGenerateToken());
+        GitUtil.forceCleanAndPush(info.getRepoUrl(),getUserName(),getGenerateToken(),info.getProjectId());
     }
 
     @SneakyThrows

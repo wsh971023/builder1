@@ -71,6 +71,11 @@ public class Info {
     private String state;
 
     /**
+     * gitlab projectId
+     */
+    private String projectId;
+
+    /**
      * 状态信息
      */
     List<Status> statusInfo = new ArrayList<>();

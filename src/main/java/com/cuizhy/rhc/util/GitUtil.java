@@ -3,7 +3,6 @@ package com.cuizhy.rhc.util;
 import com.cuizhy.rhc.constants.Constants;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.TextProgressMonitor;
@@ -13,7 +12,18 @@ import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class GitUtil {
@@ -117,17 +127,29 @@ public class GitUtil {
      * @throws IOException
      * @throws GitAPIException
      */
-    public static void forceCleanAndPush(String remote_repo_url,String username,String password) throws IOException, GitAPIException {
+    public static void forceCleanAndPush(String remote_repo_url,String username,String password,String project_id) throws IOException, GitAPIException {
         String local_repo_dir = getCloneDir(remote_repo_url);
         try (Git git = Git.open(new File(local_repo_dir))) {
             Repository repository = git.getRepository();
             //自动检测当前分支名称
             String targetBranchName = repository.getBranch();
 
-            Iterable<RevCommit> logInfo = git.log().setMaxCount(1).call();
-            RevCommit latestCommit = logInfo.iterator().next();
+            Iterable<RevCommit> logInfo = git.log().setMaxCount(2).call(); // 获取最近两次提交
+            List<RevCommit> commits = new ArrayList<>();
+            for (RevCommit commit : logInfo) {
+                commits.add(commit);
+            }
+
+            RevCommit latestCommit = commits.get(0);   // 最新提交
+            RevCommit previousCommit = commits.size() > 1 ? commits.get(1) : null; // 上一次提交（可能不存在）
+
             //获取最近一次提交信息
             String originalCommitMessage = latestCommit.getFullMessage();
+            assert previousCommit != null;
+            int commitTimeSeconds = previousCommit.getCommitTime(); // Unix 时间戳（秒）
+            LocalDate commitDate = Instant.ofEpochSecond(commitTimeSeconds)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
 
             String tempBranchName = "new-history-" + System.currentTimeMillis();
             log.info("--- 步骤 2/5: 正在创建新的孤儿分支 '{}'... ---", tempBranchName);
@@ -159,6 +181,78 @@ public class GitUtil {
             log.info("--- 步骤 5/5: 正在强制推送到远程仓库... ---");
             git.push().setForce(true).add(targetBranchName).setCredentialsProvider(new UsernamePasswordCredentialsProvider(username, password)).call();
             log.info("--- 推送成功 ---");
+
+            // 判断是否是今天
+            LocalDate today = LocalDate.now();
+            if (!commitDate.equals(today)) {
+                log.info("最新提交时间不是今天，本次触发 Housekeeping");
+                gitlabHouseKeeping(remote_repo_url,project_id,password);
+            }else{
+                log.info("最新提交时间是今天，本次不触发 Housekeeping");
+            }
         }
+    }
+
+    /**
+     * 触发 GitLab 仓库 Housekeeping
+     * @param repoUrl      仓库 URL，例如 https://gitlab.example.com/aaa/b.git
+     * @param projectId    项目 ID 或 URL 编码后的路径，例如 aaa%2Fb
+     * @param privateToken GitLab Personal Access Token
+     */
+    public static void gitlabHouseKeeping(String repoUrl, String projectId, String privateToken) {
+        if (repoUrl == null || projectId == null || privateToken == null) {
+            log.error("仓库 URL、项目 ID 或 Token 不能为空");
+            return;
+        }
+
+        try {
+            // 每次调用都创建新的 HttpClient
+            HttpClient client = HttpClient.newHttpClient();
+
+            // 构造 API 地址
+            String host = extractHostWithProtocol(repoUrl);
+            if (host == null) {
+                log.error("无法解析仓库 URL 的 host: {}", repoUrl);
+                return;
+            }
+            String apiUrl = host + "/api/v4/projects/" + projectId + "/housekeeping";
+
+            // 构造请求
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(apiUrl))
+                    .header("PRIVATE-TOKEN", privateToken)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            // 发送请求
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // 输出完整报文
+            log.info("Housekeeping Response Code: {}, Headers: {}, Body: {}",
+                    response.statusCode(),
+                    response.headers().map(),
+                    response.body());
+
+        } catch (IOException | InterruptedException e) {
+            log.error("触发仓库 Housekeeping 失败", e);
+        }
+    }
+
+    /**
+     * 提取 URL 的协议 + host 部分
+     * 例如：https://gitlab.example.com/aaa/b.git -> https://gitlab.example.com
+     * @param url 仓库 URL
+     * @return 协议 + host，失败返回 null
+     */
+    private static String extractHostWithProtocol(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("^(https?://[^/]+)");
+        Matcher matcher = pattern.matcher(url);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 }
